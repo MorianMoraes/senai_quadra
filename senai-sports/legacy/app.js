@@ -50,6 +50,7 @@ const seed = {
 };
 
 let state = loadState();
+if(!state.users.some(u=>u.id==='u9')){state.users.push({id:'u9',role:'aluno',name:'Beatriz Santos',email:'beatriz@senai.local',password:'Beatriz@123',turma:'3º A',idade:17,matricula:'ALU006',photo:'',suspended:false});saveState();}
 let session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
 let route = 'dashboard';
 let calendarDate = new Date();
@@ -141,11 +142,11 @@ function loginForm(){ return `<div class="logo"><div class="logo-mark">SS</div><
   <div class="notice" style="margin-top:18px"><strong>Contas de teste</strong><br>Aluno: aluno@senai.local / Aluno@123<br>Professor: professor@senai.local / Professor@123<br>Diretor: diretor@senai.local / Senai@123</div>`; }
 
 function registerForm(){ return `<div class="logo"><div class="logo-mark">SS</div><span>SENAI Sports</span></div>
-  <h2>Criar conta</h2><div class="helper">Cadastro livre de aluno ou professor.</div>
+  <h2>Criar conta</h2><div class="helper">Cadastro exclusivo para alunos.</div>
   <form id="registerForm"><div class="form-grid">
     <div class="form-field full"><label>Nome completo</label><input id="regName" required></div>
     <div class="form-field"><label>E-mail</label><input id="regEmail" type="email" required></div>
-    <div class="form-field"><label>Perfil</label><select id="regRole"><option value="aluno">Aluno</option><option value="professor">Professor</option></select></div>
+    <div class="form-field"><label for="regRole">Perfil</label><input id="regRole" value="Aluno" readonly></div>
     <div class="form-field"><label>Turma</label><input id="regTurma" required placeholder="Ex.: 2º A"></div>
     <div class="form-field"><label>Idade</label><input id="regIdade" type="number" min="1" max="100" required></div>
     <div class="form-field"><label>Matrícula</label><input id="regMatricula" required></div>
@@ -183,7 +184,7 @@ function bindAuth(){
       if(state.users.some(u=>u.email.toLowerCase()===email)){toast('Este e-mail já está cadastrado.','error');return;}
       if(!passwordScore(pass).valid){toast('A senha ainda não atende a todos os requisitos.','error');return;}
       if(pass!==regConfirm.value){toast('As senhas não coincidem.','error');return;}
-      const u={id:uid('u'),role:regRole.value,name,email,password:pass,turma:regTurma.value.trim(),idade:Number(regIdade.value),matricula:regMatricula.value.trim(),photo:regPhoto.value.trim(),suspended:false};
+      const u={id:uid('u'),role:'aluno',name,email,password:pass,turma:regTurma.value.trim(),idade:Number(regIdade.value),matricula:regMatricula.value.trim(),photo:regPhoto.value.trim(),suspended:false};
       state.users.push(u); state.stats.push({userId:u.id,points:0,serves:0,aces:0,blocks:0,attacks:0,errors:0,wins:0,losses:0}); saveState(); session={userId:u.id}; localStorage.setItem(SESSION_KEY,JSON.stringify(session)); app(); toast('Conta criada com sucesso.');
     });
   };
@@ -192,14 +193,13 @@ function bindAuth(){
 }
 
 function navItems(role){
-  const common=[['dashboard','Dashboard','⌂'],['calendar','Calendário','◫'],['games','Jogos','🏐'],['teams','Equipes','👥'],['tournaments','Campeonatos','🏆'],['ranking','Ranking','📊'],['notifications','Notificações','🔔'],['history','Histórico','↺'],['profile','Perfil','◎']];
+  const common=[['dashboard','Dashboard','⌂'],['calendar','Calendário','◫'],['games','Jogos','◉'],['teams','Equipes','♧'],['tournaments','Campeonatos','☆'],['ranking','Ranking','▥'],['history','Histórico','↺'],['profile','Perfil','◎']];
   if(role==='professor') common.splice(2,0,['createGame','Criar jogo','＋']);
-  if(role==='diretor') return [['dashboard','Dashboard','⌂'],['calendar','Calendário','◫'],['createGame','Criar jogo','＋'],['games','Jogos','🏐'],['teams','Equipes','👥'],['tournaments','Campeonatos','🏆'],['users','Usuários','👤'],['ranking','Ranking','📊'],['logs','Logs','☷'],['notifications','Notificações','🔔'],['profile','Perfil','◎']];
+  if(role==='diretor') return [['dashboard','Dashboard','⌂'],['calendar','Calendário','◫'],['createGame','Criar jogo','＋'],['games','Jogos','◉'],['teams','Equipes','♧'],['tournaments','Campeonatos','☆'],['users','Usuários','♙'],['ranking','Ranking','▥'],['logs','Logs','☷'],['profile','Perfil','◎']];
   return common;
 }
 
 function shellView(u){
-  const unread=state.notifications.filter(n=>n.userId===u.id&&!n.read).length;
   return `<div class="app-shell">
     <aside class="sidebar ${sidebarOpen?'open':''}" id="sidebar">
       <div class="logo"><div class="logo-mark">SS</div><span>SENAI Sports</span></div>
@@ -210,17 +210,16 @@ function shellView(u){
         <button class="btn btn-danger" id="logoutBtn">Sair</button>
       </div>
     </aside>
-    <main class="main"><header class="topbar"><div style="display:flex;align-items:center;gap:10px"><button class="icon-btn mobile-menu" id="menuBtn">☰</button><h1>${pageTitle(route)}</h1></div><div class="top-actions"><button class="icon-btn" id="notifBtn">🔔${unread?`<span class="badge-count">${unread}</span>`:''}</button></div></header><section class="content">${routeView(u)}</section></main>
+    <main class="main"><header class="topbar"><div style="display:flex;align-items:center;gap:10px"><button class="icon-btn mobile-menu" id="menuBtn">☰</button><h1>${pageTitle(route)}</h1></div></header><section class="content">${routeView(u)}</section></main>
   </div><div class="toast-wrap"></div>`;
 }
 function avatarHTML(u){ return u.photo ? `<img src="${escapeHTML(u.photo)}" alt="Foto de ${escapeHTML(u.name)}">` : escapeHTML(u.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()); }
-function pageTitle(r){return ({dashboard:'Dashboard',calendar:'Calendário',createGame:'Criar jogo',games:'Jogos',teams:'Equipes',tournaments:'Campeonatos',ranking:'Ranking',notifications:'Notificações',history:'Histórico',profile:'Perfil',users:'Usuários',logs:'Logs'})[r]||'SENAI Sports';}
+function pageTitle(r){return ({dashboard:'Dashboard',calendar:'Calendário',createGame:'Criar jogo',games:'Jogos',teams:'Equipes',tournaments:'Campeonatos',ranking:'Ranking',history:'Histórico',profile:'Perfil',users:'Usuários',logs:'Logs'})[r]||'SENAI Sports';}
 
 function bindShell(){
   document.querySelectorAll('[data-route]').forEach(b=>b.onclick=()=>{route=b.dataset.route;sidebarOpen=false;app();});
   document.getElementById('logoutBtn').onclick=logout;
   document.getElementById('themeBtn').onclick=()=>{ const cur=document.documentElement.dataset.theme; localStorage.setItem(THEME_KEY,cur==='dark'?'light':'dark'); app(); };
-  document.getElementById('notifBtn').onclick=()=>{route='notifications';app();};
   document.getElementById('menuBtn')?.addEventListener('click',()=>{sidebarOpen=!sidebarOpen; document.getElementById('sidebar').classList.toggle('open',sidebarOpen);});
   bindRoute();
 }
@@ -235,7 +234,6 @@ function routeView(u){
     case 'teams': return teamsView(u);
     case 'tournaments': return tournamentsView(u);
     case 'ranking': return rankingView();
-    case 'notifications': return notificationsView(u);
     case 'history': return historyView();
     case 'profile': return profileView(u);
     case 'users': return u.role==='diretor'?usersView():noAccess();
@@ -256,12 +254,12 @@ function dashboardView(u){
   <div class="cards">${metric('Próximos jogos',upcoming.length,'na agenda')}${metric('Equipes',myTeams.length,'sob sua gestão')}${metric('Alunos',state.users.filter(x=>x.role==='aluno').length,'cadastrados')}${metric('Campeonatos',state.tournaments.length,'no sistema')}</div>
   <div class="grid-2"><div class="card"><div class="section-title"><h2>Próximos jogos</h2><button class="link-btn" data-go="games">Gerenciar</button></div>${gameList(upcoming.slice(0,5),u)}</div><div class="card"><h3>Equipes</h3>${teamMini(myTeams)}</div></div>`;
   const next=upcoming.find(g=>g.participantIds.includes(u.id))||upcoming[0];
-  return `<div class="hero"><div><h2>Olá, ${escapeHTML(u.name.split(' ')[0])} 👋</h2><p>Bem-vindo ao SENAI Sports.</p></div>${next?`<div><small>Próximo jogo</small><div style="font-size:20px;font-weight:900">${fmtDate(next.date)} • ${next.time}</div></div>`:''}</div>
+  return `<div class="hero"><div><h2>Olá, ${escapeHTML(u.name.split(' ')[0])} </h2><p>Bem-vindo ao SENAI Sports.</p></div>${next?`<div><small>Próximo jogo</small><div style="font-size:20px;font-weight:900">${fmtDate(next.date)} • ${next.time}</div></div>`:''}</div>
   <div class="cards">${metric('Pontos',stats.points,'acumulados')}${metric('Vitórias',stats.wins,'individuais')}${metric('Derrotas',stats.losses,'individuais')}${metric('Equipes',myTeams.length,'participando')}</div>
   <div class="grid-2"><div class="card"><div class="section-title"><h2>Próximos jogos</h2><button class="link-btn" data-go="games">Ver todos</button></div>${gameList(upcoming.slice(0,4),u)}</div><div class="card"><h3>Minha equipe</h3>${teamMini(myTeams.slice(0,2))}</div></div>`;
 }
 function metric(label,value,sub){return `<div class="card"><div class="metric">${value}</div><div class="metric-label">${escapeHTML(label)} • ${escapeHTML(sub)}</div></div>`;}
-function teamMini(teams){return teams.length?teams.map(t=>`<div class="list-item"><div><strong>${escapeHTML(t.name)}</strong><small>${t.memberIds.length}/6 ativos • ${t.wins}V ${t.losses}D</small></div><span class="status ${t.status==='ativa'?'green':'yellow'}">${escapeHTML(t.status)}</span></div>`).join(''):`<div class="empty-state">Nenhuma equipe encontrada.</div>`;}
+function teamMini(teams){return teams.length?teams.map(t=>`<div class="list-item"><div><strong>${escapeHTML(t.name)}</strong><small>${teamPlayers(t).length}/6 jogadores • ${t.wins}V ${t.losses}D</small></div><span class="status ${t.status==='ativa'?'green':'yellow'}">${escapeHTML(t.status)}</span></div>`).join(''):`<div class="empty-state">Nenhuma equipe encontrada.</div>`;}
 function gameList(games,u){return games.length?games.map(g=>`<div class="list-item"><div><strong>${escapeHTML(teamName(g.team1))} × ${escapeHTML(teamName(g.team2))}</strong><small>${fmtDate(g.date)} • ${g.time} • ${escapeHTML(g.court)}</small></div><span class="status ${g.status==='finalizado'?'green':g.status==='cancelado'?'red':'blue'}">${escapeHTML(g.status)}</span></div>`).join(''):`<div class="empty-state">Nenhum jogo encontrado.</div>`;}
 
 function calendarView(u){
@@ -298,18 +296,17 @@ function gameActions(g,u){
 }
 
 function teamsView(u){
-  return `<div class="section-title"><h2>Times</h2><button class="btn btn-primary" id="newTeamBtn">＋ Criar equipe</button></div><div class="searchbar"><input id="teamSearch" placeholder="Pesquisar equipe..."></div><div class="team-grid" id="teamGrid">${teamCards(state.teams,u)}</div>`;
+  return `<div class="section-title"><h2>Times</h2>${u.role==='aluno'?`<button class="btn btn-primary" id="newTeamBtn">＋ Criar equipe</button>`:''}</div><div class="searchbar"><input id="teamSearch" placeholder="Pesquisar equipe..."></div><div class="team-grid" id="teamGrid">${teamCards(state.teams,u)}</div>`;
 }
-function teamCards(teams,u){ return teams.map(t=>{const pct=Math.min(100,(t.memberIds.length/6)*100);return `<article class="team-card"><div class="team-head"><div><h3>${escapeHTML(t.name)}</h3><div class="muted">${escapeHTML(t.teacherIds.map(userName).join(', '))}</div></div><span class="status ${t.status==='ativa'?'green':'yellow'}">${escapeHTML(t.status)}</span></div><div class="progress"><span style="width:${pct}%"></span></div><div><strong>${t.memberIds.length}/6 ativos</strong> • ${t.reserveIds.length} reserva(s)</div><div class="muted" style="margin:8px 0 14px">${t.wins} vitórias • ${t.losses} derrotas • ${t.pointsFor} pontos feitos</div><div class="btn-row"><button class="btn btn-secondary" data-teamdetail="${t.id}">Ver equipe</button>${isPrivileged()?`<button class="btn btn-danger" data-delteam="${t.id}">Excluir</button>`:''}</div></article>`;}).join(''); }
+function teamCards(teams,u){ return teams.map(t=>{const pct=Math.min(100,(teamPlayers(t).length/6)*100);return `<article class="team-card"><div class="team-head"><div><h3>${escapeHTML(t.name)}</h3><div class="muted">${escapeHTML(t.teacherIds.map(userName).join(', '))}</div></div><span class="status ${t.status==='ativa'?'green':'yellow'}">${escapeHTML(t.status)}</span></div><div class="progress"><span style="width:${pct}%"></span></div><div><strong>${teamPlayers(t).length}/6 jogadores</strong> • ${t.reserveIds.length} reserva(s)</div><div class="muted" style="margin:8px 0 14px">${t.wins} vitórias • ${t.losses} derrotas • ${t.pointsFor} pontos feitos</div><div class="btn-row"><button class="btn btn-secondary" data-teamdetail="${t.id}">Ver equipe</button>${t.creatorId===u.id?`<button class="btn btn-primary" data-roster="${t.id}">Montar time</button>`:''}${isPrivileged()?`<button class="btn btn-danger" data-delteam="${t.id}">Excluir</button>`:''}</div></article>`;}).join(''); }
 
 function tournamentsView(u){
-  const eligible=eligibleTournamentDates();
-  return `<div class="section-title"><h2>Campeonatos</h2>${isPrivileged()&&eligible.length?`<button class="btn btn-primary" id="newTournamentBtn">＋ Criar campeonato</button>`:''}</div>${eligible.length&&isPrivileged()?`<div class="notice">Existem ${eligible.length} dia(s) com 3 ou mais equipes envolvidas em jogos. A opção de campeonato está disponível.</div>`:''}${state.tournaments.length?state.tournaments.map(t=>tournamentCard(t)).join(''):`<div class="card"><div class="empty-state">Nenhum campeonato criado ainda.</div></div>`}`;
+  return `<div class="section-title"><h2>Campeonatos</h2>${canCreateTournament()?'<button class="btn btn-primary" id="newTournamentBtn">＋ Criar campeonato</button>':''}</div><div class="notice">O professor cria o campeonato. O líder monta e inscreve o time fechado com exatamente 6 alunos, incluindo ele próprio.</div>${state.tournaments.length?state.tournaments.map(t=>tournamentCard(t)).join(''):'<div class="card empty-state">Nenhum campeonato criado ainda.</div>'}`;
 }
-function eligibleTournamentDates(){
-  const by={}; state.games.filter(g=>g.status!=='cancelado').forEach(g=>{by[g.date]??=new Set(); if(g.team1)by[g.date].add(g.team1); if(g.team2)by[g.date].add(g.team2);}); return Object.entries(by).filter(([,s])=>s.size>=3).map(([d,s])=>({date:d,teams:[...s]}));
-}
-function tournamentCard(t){
+
+
+
+function legacyTournamentCard(t){
   return `<div class="card" style="margin-bottom:16px"><div class="section-title"><div><h2>${escapeHTML(t.name)}</h2><div class="muted">${fmtDate(t.date)} • Mata-mata • ${t.teamIds.length} equipes</div></div><span class="status blue">${escapeHTML(t.status)}</span></div><div class="bracket">${t.rounds.map((round,i)=>`<div class="round"><h4>${i===t.rounds.length-1?'Final':`Rodada ${i+1}`}</h4>${round.map(m=>`<div class="match"><div class="match-row ${m.winner===m.a?'winner':''}"><span>${escapeHTML(teamName(m.a))}</span><strong>${m.scoreA??'-'}</strong></div><div class="match-row ${m.winner===m.b?'winner':''}"><span>${escapeHTML(teamName(m.b))}</span><strong>${m.scoreB??'-'}</strong></div></div>`).join('')}</div>`).join('')}</div></div>`;
 }
 
@@ -319,7 +316,8 @@ function rankingView(){
   return `<div class="grid-equal"><div class="card"><h3>Ranking de alunos</h3><div class="table-wrap"><table><thead><tr><th>#</th><th>Aluno</th><th>Pontos</th><th>Aces</th><th>Bloqueios</th><th>V/D</th></tr></thead><tbody>${playerRows.map((x,i)=>`<tr><td><strong>${i+1}</strong></td><td>${escapeHTML(x.user.name)}<br><small class="muted">${escapeHTML(x.user.turma)}</small></td><td>${x.points}</td><td>${x.aces}</td><td>${x.blocks}</td><td>${x.wins}/${x.losses}</td></tr>`).join('')}</tbody></table></div></div><div class="card"><h3>Ranking de equipes</h3><div class="table-wrap"><table><thead><tr><th>#</th><th>Equipe</th><th>V</th><th>D</th><th>PF</th><th>PS</th></tr></thead><tbody>${teams.map((t,i)=>`<tr><td><strong>${i+1}</strong></td><td>${escapeHTML(t.name)}</td><td>${t.wins}</td><td>${t.losses}</td><td>${t.pointsFor}</td><td>${t.pointsAgainst}</td></tr>`).join('')}</tbody></table></div></div></div>`;
 }
 
-function notificationsView(u){ const ns=state.notifications.filter(n=>n.userId===u.id); return `<div class="section-title"><h2>Notificações</h2><button class="btn btn-secondary" id="markAll">Marcar todas como lidas</button></div><div class="card">${ns.length?ns.map(n=>`<div class="list-item"><div><strong>${n.read?'Notificação':'Nova notificação'}</strong><small>${escapeHTML(n.text)}</small></div><button class="link-btn" data-read="${n.id}">${n.read?'Lida':'Marcar como lida'}</button></div>`).join(''):`<div class="empty-state">Nenhuma notificação.</div>`}</div>`; }
+
+
 function historyView(){ const done=state.games.filter(g=>['finalizado','cancelado'].includes(g.status)); return `<div class="card"><div class="section-title"><h2>Histórico de partidas</h2></div>${gameList(done,currentUser())}</div>`; }
 
 function profileView(u){ const s=state.stats.find(x=>x.userId===u.id)||{}; return `<div class="profile-grid"><div class="card profile-card"><div class="avatar">${avatarHTML(u)}</div><h2>${escapeHTML(u.name)}</h2><div class="muted">${roleLabel(u.role)} • ${escapeHTML(u.turma)}</div></div><div class="card"><h3>Dados da conta</h3><form id="profileForm"><div class="form-grid"><div class="form-field full"><label>Nome completo</label><input id="pName" value="${escapeHTML(u.name)}"></div><div class="form-field"><label>E-mail</label><input value="${escapeHTML(u.email)}" disabled></div><div class="form-field"><label>Matrícula</label><input value="${escapeHTML(u.matricula)}" disabled></div><div class="form-field"><label>Turma</label><input id="pTurma" value="${escapeHTML(u.turma)}"></div><div class="form-field"><label>Foto (URL)</label><input id="pPhoto" value="${escapeHTML(u.photo||'')}"></div></div><button class="btn btn-primary">Salvar perfil</button></form><hr style="border:0;border-top:1px solid var(--border);margin:22px 0"><h3>Estatísticas</h3><div class="cards" style="grid-template-columns:repeat(3,1fr)">${metric('Pontos',s.points||0,'total')}${metric('Aces',s.aces||0,'total')}${metric('Bloqueios',s.blocks||0,'total')}</div></div></div>`; }
@@ -337,7 +335,6 @@ function bindRoute(){
   if(route==='games') bindGames();
   if(route==='teams') bindTeams();
   if(route==='tournaments') bindTournaments();
-  if(route==='notifications') bindNotifications();
   if(route==='profile') bindProfile();
   if(route==='users') bindUsers();
   document.querySelectorAll('[data-game]').forEach(b=>b.onclick=()=>openGameModal(b.dataset.game));
@@ -361,13 +358,17 @@ function bindGames(){
 
 function bindTeams(){
   document.getElementById('teamSearch').oninput=e=>{ const q=e.target.value.toLowerCase(); document.getElementById('teamGrid').innerHTML=teamCards(state.teams.filter(t=>t.name.toLowerCase().includes(q)),currentUser()); bindTeams(); };
-  document.getElementById('newTeamBtn').onclick=openNewTeamModal;
-  document.querySelectorAll('[data-delteam]').forEach(b=>b.onclick=()=>{if(!confirm('Tem certeza que deseja excluir esta equipe?'))return; state.teams=state.teams.filter(t=>t.id!==b.dataset.delteam); log('excluiu uma equipe');saveState();app();toast('Equipe excluída.');});
+  document.getElementById('newTeamBtn')?.addEventListener('click',openNewTeamModal);
+  document.querySelectorAll('[data-roster]').forEach(b=>b.onclick=()=>openRosterModal(b.dataset.roster));
+  document.querySelectorAll('[data-delteam]').forEach(b=>b.onclick=()=>{if(!isPrivileged())return; if(state.tournaments.some(t=>t.teamIds.includes(b.dataset.delteam))){toast('Uma equipe inscrita em campeonato não pode ser excluída.','error');return;} if(!confirm('Tem certeza que deseja excluir esta equipe?'))return; state.teams=state.teams.filter(t=>t.id!==b.dataset.delteam); log('excluiu uma equipe');saveState();app();toast('Equipe excluída.');});
   document.querySelectorAll('[data-teamdetail]').forEach(b=>b.onclick=()=>openTeamModal(b.dataset.teamdetail));
 }
 
-function bindTournaments(){ document.getElementById('newTournamentBtn')?.addEventListener('click',openTournamentModal); }
-function bindNotifications(){ document.getElementById('markAll').onclick=()=>{state.notifications.filter(n=>n.userId===currentUser().id).forEach(n=>n.read=true);saveState();app();}; document.querySelectorAll('[data-read]').forEach(b=>b.onclick=()=>{state.notifications.find(n=>n.id===b.dataset.read).read=true;saveState();app();}); }
+function bindTournaments(){
+  document.getElementById('newTournamentBtn')?.addEventListener('click',openTournamentModal);
+  document.querySelectorAll('[data-register-tournament]').forEach(b=>b.onclick=()=>{if(registerTeam(b.dataset.registerTournament,b.dataset.registerTeam)){app();toast('Time inscrito com os 6 jogadores.');}});
+}
+
 function bindProfile(){ document.getElementById('profileForm').onsubmit=e=>{e.preventDefault(); const u=currentUser(); if(inappropriateName(pName.value)){toast('Nome bloqueado pelo filtro de conteúdo.','error');return;}u.name=pName.value.trim();u.turma=pTurma.value.trim();u.photo=pPhoto.value.trim();saveState();app();toast('Perfil atualizado.');}; }
 function bindUsers(){ document.querySelectorAll('[data-suspend]').forEach(b=>b.onclick=()=>{const u=state.users.find(x=>x.id===b.dataset.suspend);u.suspended=!u.suspended;log(`${u.suspended?'suspendeu':'reativou'} ${u.name}`);saveState();app();}); }
 
@@ -376,13 +377,39 @@ function openGameModal(id){ const g=state.games.find(x=>x.id===id); const partic
 function openScoreModal(id){ const g=state.games.find(x=>x.id===id); modal(`<h2>Registrar placar</h2><p class="muted">${escapeHTML(teamName(g.team1))} × ${escapeHTML(teamName(g.team2))}</p><form id="scoreForm"><div class="form-grid">${[1,2,3].map(i=>`<div class="form-field"><label>Set ${i} — ${escapeHTML(teamName(g.team1))}</label><input id="a${i}" type="number" min="0" value="${g.sets[i-1]?.a??''}"></div><div class="form-field"><label>Set ${i} — ${escapeHTML(teamName(g.team2))}</label><input id="b${i}" type="number" min="0" value="${g.sets[i-1]?.b??''}"></div>`).join('')}</div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary">Salvar resultado</button></div></form>`); document.getElementById('scoreForm').onsubmit=e=>{e.preventDefault(); const sets=[]; for(let i=1;i<=3;i++){const a=document.getElementById(`a${i}`).value,b=document.getElementById(`b${i}`).value;if(a!==''&&b!=='')sets.push({a:Number(a),b:Number(b)});} if(!sets.length){toast('Informe pelo menos um set.','error');return;} g.sets=sets; g.status='finalizado'; const wa=sets.filter(s=>s.a>s.b).length, wb=sets.filter(s=>s.b>s.a).length; const ta=state.teams.find(t=>t.id===g.team1), tb=state.teams.find(t=>t.id===g.team2); if(ta&&tb&&wa!==wb){if(wa>wb){ta.wins++;tb.losses++;}else{tb.wins++;ta.losses++;}ta.pointsFor+=sets.reduce((n,s)=>n+s.a,0);ta.pointsAgainst+=sets.reduce((n,s)=>n+s.b,0);tb.pointsFor+=sets.reduce((n,s)=>n+s.b,0);tb.pointsAgainst+=sets.reduce((n,s)=>n+s.a,0);} log(`registrou o placar de ${teamName(g.team1)} x ${teamName(g.team2)}`); saveState();closeModal();app();toast('Placar salvo e estatísticas atualizadas.');}; }
 
 function openNewTeamModal(){
-  const u=currentUser(); if(u.role==='aluno' && state.teams.some(t=>t.creatorId===u.id)){toast('Cada aluno pode criar no máximo uma equipe.','error');return;}
-  const teachers=state.users.filter(x=>x.role==='professor'); modal(`<h2>Criar equipe</h2><form id="teamForm"><div class="form-field"><label>Nome da equipe</label><input id="teamNameInput" required></div><div class="form-field"><label>Professor responsável</label><select id="teamTeacher" required><option value="">Selecione</option>${teachers.map(t=>`<option value="${t.id}">${escapeHTML(t.name)}</option>`).join('')}</select></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary">Criar equipe</button></div></form>`); document.getElementById('teamForm').onsubmit=e=>{e.preventDefault(); const name=teamNameInput.value.trim(); if(inappropriateName(name)){toast('Nome de equipe bloqueado pelo filtro de conteúdo.','error');return;} const t={id:uid('t'),name,status:u.role==='aluno'?'aguardando aprovação':'ativa',creatorId:u.id,teacherIds:[teamTeacher.value],memberIds:[u.id],reserveIds:[],wins:0,losses:0,pointsFor:0,pointsAgainst:0}; state.teams.push(t); notify(teamTeacher.value,`Nova equipe ${name} criada e vinculada a você.`); log(`criou a equipe ${name}`); saveState();closeModal();app();toast(u.role==='aluno'?'Equipe criada e aguardando aprovação.':'Equipe criada.');};
+  const u=currentUser(); if(u?.role!=='aluno'||u.suspended)return; if(state.teams.some(t=>t.creatorId===u.id)){toast('Cada aluno pode criar no máximo uma equipe.','error');return;}
+  const teachers=state.users.filter(x=>x.role==='professor'); modal(`<h2>Criar equipe</h2><form id="teamForm"><div class="form-field"><label>Nome da equipe</label><input id="teamNameInput" required></div><div class="form-field"><label>Professor responsável</label><select id="teamTeacher" required><option value="">Selecione</option>${teachers.map(t=>`<option value="${t.id}">${escapeHTML(t.name)}</option>`).join('')}</select></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary">Criar equipe</button></div></form>`); document.getElementById('teamForm').onsubmit=e=>{e.preventDefault(); const name=teamNameInput.value.trim(); if(inappropriateName(name)){toast('Nome de equipe bloqueado pelo filtro de conteúdo.','error');return;} const t={id:uid('t'),name,status:'ativa',creatorId:u.id,teacherIds:[teamTeacher.value],memberIds:[u.id],reserveIds:[],wins:0,losses:0,pointsFor:0,pointsAgainst:0}; state.teams.push(t); notify(teamTeacher.value,`Nova equipe ${name} criada e vinculada a você.`); log(`criou a equipe ${name}`); saveState();closeModal();app();toast('Equipe criada. Complete o time com mais 5 jogadores.');openRosterModal(t.id);};
 }
 
-function openTeamModal(id){ const t=state.teams.find(x=>x.id===id); const members=t.memberIds.map(userName), reserves=t.reserveIds.map(userName); modal(`<h2>${escapeHTML(t.name)}</h2><p><span class="status ${t.status==='ativa'?'green':'yellow'}">${escapeHTML(t.status)}</span></p><p><strong>Professor(es):</strong> ${t.teacherIds.map(userName).map(escapeHTML).join(', ')}</p><p><strong>Integrantes:</strong> ${members.map(escapeHTML).join(', ')||'Nenhum'}</p><p><strong>Reservas:</strong> ${reserves.map(escapeHTML).join(', ')||'Nenhum'}</p><div class="cards" style="grid-template-columns:repeat(3,1fr)">${metric('Vitórias',t.wins,'time')}${metric('Derrotas',t.losses,'time')}${metric('Pontos',t.pointsFor,'feitos')}</div>`); }
+function openTeamModal(id){ const t=state.teams.find(x=>x.id===id); const members=teamPlayers(t).map(userName), reserves=t.reserveIds.map(userName); modal(`<h2>${escapeHTML(t.name)}</h2><p><span class="status ${t.status==='ativa'?'green':'yellow'}">${escapeHTML(t.status)}</span></p><p><strong>Professor(es):</strong> ${t.teacherIds.map(userName).map(escapeHTML).join(', ')}</p><p><strong>Líder:</strong> ${escapeHTML(userName(t.creatorId))}</p><p><strong>Jogadores (${teamPlayers(t).length}/6):</strong> ${members.map(escapeHTML).join(', ')||'Nenhum'}</p><p><strong>Reservas:</strong> ${reserves.map(escapeHTML).join(', ')||'Nenhum'}</p><div class="cards" style="grid-template-columns:repeat(3,1fr)">${metric('Vitórias',t.wins,'time')}${metric('Derrotas',t.losses,'time')}${metric('Pontos',t.pointsFor,'feitos')}</div>`); }
 
-function openTournamentModal(){ const dates=eligibleTournamentDates(); modal(`<h2>Criar campeonato</h2><form id="tournamentForm"><div class="form-field"><label>Nome</label><input id="tourName" value="Campeonato SENAI Sports" required></div><div class="form-field"><label>Dia com 3+ equipes</label><select id="tourDate">${dates.map(x=>`<option value="${x.date}">${fmtDate(x.date)} — ${x.teams.length} equipes</option>`).join('')}</select></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary">Sortear e criar</button></div></form>`); document.getElementById('tournamentForm').onsubmit=e=>{e.preventDefault(); const d=dates.find(x=>x.date===tourDate.value); const shuffled=[...d.teams].sort(()=>Math.random()-.5); const rounds=[]; let current=[]; for(let i=0;i<shuffled.length;i+=2){current.push({a:shuffled[i],b:shuffled[i+1]||'',scoreA:null,scoreB:null,winner:shuffled[i+1]?'':shuffled[i]});} rounds.push(current); let count=current.length; while(count>1){count=Math.ceil(count/2); rounds.push(Array.from({length:count},()=>({a:'',b:'',scoreA:null,scoreB:null,winner:''})));} state.tournaments.push({id:uid('tr'),name:tourName.value.trim(),date:d.date,teamIds:d.teams,status:'aguardando início',rounds}); d.teams.forEach(tid=>{const t=state.teams.find(x=>x.id===tid); t.memberIds.forEach(uid=>notify(uid,`Campeonato criado para ${fmtDate(d.date)}.`));}); log(`criou o campeonato ${tourName.value.trim()}`);saveState();closeModal();app();toast('Campeonato criado com confrontos sorteados.');}; }
+function openTournamentModal(){
+  if(!canCreateTournament()){toast('Somente professores podem criar campeonatos.','error');return;}
+  modal(`<h2>Criar campeonato</h2><p class="notice">Após a criação, os líderes poderão inscrever seus times completos.</p><form id="tournamentForm"><div class="form-field"><label for="tourName">Nome</label><input id="tourName" required maxlength="100" placeholder="Ex.: Campeonato SENAI de Vôlei"></div><div class="form-field"><label for="tourDate">Data do campeonato</label><input id="tourDate" type="date" min="${todayISO()}" required></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary">Criar e abrir inscrições</button></div></form>`);
+  document.getElementById('tournamentForm').onsubmit=e=>{e.preventDefault();if(!canCreateTournament())return;const name=document.getElementById('tourName').value.trim(),date=document.getElementById('tourDate').value;if(!name||inappropriateName(name)||!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<todayISO()){toast('Informe um nome válido e uma data a partir de hoje.','error');return;}state.tournaments.push({id:uid('tr'),name,date,createdBy:currentUser().id,teamIds:[],registrations:[],status:'inscricoes',rounds:[]});log(`criou o campeonato ${name}`);saveState();closeModal();app();toast('Campeonato criado. Inscrições abertas para os times.');};
+}
+
+function tournamentCard(t){
+  if(t.status!=='inscricoes')return legacyTournamentCard(t);
+  const u=currentUser(), mine=state.teams.filter(team=>team.creatorId===u.id);
+  const registered=(t.registrations||[]);
+  return `<article class="card tournament-card"><div class="section-title"><div><h2>${escapeHTML(t.name)}</h2><p class="muted">${fmtDate(t.date)} • Professor: ${escapeHTML(userName(t.createdBy))}</p></div><span class="status blue">${t.date<todayISO()?'Inscrições encerradas':'Inscrições abertas'}</span></div><p><strong>${t.teamIds.length} time(s) inscrito(s)</strong> • 6 jogadores por time</p><div class="list">${registered.map(r=>`<div class="list-item"><div><strong>${escapeHTML(teamName(r.teamId))}</strong><small>Líder: ${escapeHTML(userName(r.leaderId))}<br>${r.memberIds.map(userName).map(escapeHTML).join(', ')}</small></div><span class="status green">6/6 inscritos</span></div>`).join('')||'<p class="muted">Aguardando a inscrição dos times.</p>'}</div>${u.role==='aluno'?mine.map(team=>{const error=registrationError(t,team);return `<div class="registration-option"><strong>${escapeHTML(team.name)}</strong><p class="muted">${escapeHTML(error||'Time completo. Pronto para inscrição.')}</p><button class="btn btn-primary" data-register-tournament="${t.id}" data-register-team="${team.id}" ${error?'disabled':''}>${t.teamIds.includes(team.id)?'Time inscrito':'Inscrever time com 6 jogadores'}</button></div>`;}).join('')||'<p class="notice">Somente o líder que criou o time pode inscrevê-lo. Monte sua equipe na aba Equipes.</p>':''}</article>`;
+}
+function openRosterModal(id){
+  const t=state.teams.find(x=>x.id===id), u=currentUser();
+  if(!t||t.creatorId!==u?.id||u.role!=='aluno'||u.suspended){toast('Somente o líder pode montar o time.','error');return;}
+  if(state.tournaments.some(tr=>tr.teamIds.includes(id))){toast('O elenco está fechado porque o time já está inscrito em campeonato.','error');return;}
+  const players=state.users.filter(x=>x.role==='aluno'&&!x.suspended&&x.id!==u.id);
+  modal(`<h2>Montar time: ${escapeHTML(t.name)}</h2><p class="notice">Você é o líder e ocupa 1 das 6 vagas. Selecione mais 5 alunos para fechar o time.</p><form id="rosterForm"><p><strong>Líder: ${escapeHTML(u.name)}</strong></p><div class="roster-options">${players.map(p=>`<label class="roster-option"><input type="checkbox" name="player" value="${p.id}" ${t.memberIds.includes(p.id)?'checked':''}><span>${escapeHTML(p.name)}<small>${escapeHTML(p.turma)} • ${escapeHTML(p.matricula)}</small></span></label>`).join('')}</div><p id="rosterCount" aria-live="polite"></p><div class="modal-footer"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary">Salvar elenco</button></div></form>`);
+  const form=document.getElementById('rosterForm');
+  const counter=()=>{const count=form.querySelectorAll('input:checked').length;document.getElementById('rosterCount').textContent=`${count+1}/6 jogadores selecionados`;form.querySelectorAll('input:not(:checked)').forEach(i=>i.disabled=count>=5);};
+  form.onchange=counter;counter();
+  form.onsubmit=e=>{e.preventDefault();if(currentUser()?.id!==t.creatorId||currentUser()?.suspended||state.tournaments.some(tr=>tr.teamIds.includes(id)))return;
+    const ids=[u.id,...Array.from(form.querySelectorAll('input:checked'),i=>i.value)];
+    if(ids.length>6||new Set(ids).size!==ids.length||ids.some(id=>!state.users.some(p=>p.id===id&&p.role==='aluno'&&!p.suspended))){toast('Selecione até 6 alunos ativos, incluindo o líder.','error');return;}
+    t.memberIds=ids;t.reserveIds=[];t.status='ativa';saveState();closeModal();app();toast(ids.length===6?'Time completo. O líder já pode inscrevê-lo em um campeonato.':'Elenco salvo. Complete as 6 vagas para se inscrever.');
+  };
+}
 
 function modal(content){ const el=document.createElement('div'); el.className='modal-backdrop'; el.id='modalBackdrop'; el.innerHTML=`<div class="modal">${content}</div>`; document.body.appendChild(el); el.onclick=e=>{if(e.target===el)closeModal();}; el.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeModal); }
 function closeModal(){ document.getElementById('modalBackdrop')?.remove(); }
