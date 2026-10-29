@@ -37,8 +37,21 @@ test('professor cria campeonato e líder inscreve seis jogadores; navegação e 
   await expect(page.getByText('6/6 inscritos', { exact: true })).toBeVisible();
   await page.reload(); await managementSection(page, 'Campeonatos');
   await expect(page.getByRole('button', { name: 'Time inscrito' })).toBeDisabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('campeonatos.png'), fullPage: true });
+  await navigate(page, 'calendar');
+  await expect(page.getByRole('heading', { name: 'Uma visão clara de cada partida.' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Lista', exact: true })).toHaveAttribute('aria-pressed', testInfo.project.name === 'mobile' ? 'true' : 'false');
+  await page.getByRole('button', { name: 'Lista' }).click();
+  await expect(page.getByRole('heading', { name: 'Jogos e eventos' })).toBeVisible();
+  await page.getByLabel('Filtrar por quadra').selectOption('Quadra SENAI');
+  await page.getByRole('button', { name: 'Mês', exact: true }).click();
   for (const route of ['dashboard', 'calendar', 'ranking', 'history']) await navigate(page, route);
+  if (testInfo.project.name === 'desktop') {
+    await page.getByRole('button', { name: 'Recolher menu' }).click();
+    await expect(page.getByRole('button', { name: 'Alternar tema' })).toBeVisible();
+    await page.getByRole('button', { name: 'Expandir menu' }).click();
+  }
   const currentTheme = await page.locator('html').getAttribute('data-theme');
   await openMenu(page); await page.getByRole('button', { name: 'Alternar tema' }).click();
   const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
