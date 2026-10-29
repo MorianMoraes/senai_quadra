@@ -1,0 +1,14 @@
+import type { Tournament } from '../types/models';
+import { useApp } from '../contexts/AppContext';
+import { registerTeam, registrationError } from '../services/tournaments';
+import { fmtDate, teamName, todayISO, userName } from '../utils/format';
+import { Button, Card, Status } from './ui';
+
+export function TournamentCard({ tournament }: { tournament: Tournament }) {
+  const { state, user, act } = useApp(); if (!user) return null;
+  const mine = state.teams.filter(team => team.creatorId === user.id), open = tournament.status === 'inscricoes';
+  return <Card className="tournament-card"><div className="section-title"><div><h2>{tournament.name}</h2><p className="muted">{fmtDate(tournament.date)} • Professor: {userName(state, tournament.createdBy)}</p></div><Status>{open ? tournament.date < todayISO() ? 'Inscrições encerradas' : 'Inscrições abertas' : tournament.status}</Status></div><p><strong>{tournament.teamIds.length} time(s) inscrito(s)</strong> • 6 jogadores por time</p><div className="list">{tournament.registrations.length ? tournament.registrations.map(registration => <div className="list-item" key={registration.teamId}><div><strong>{teamName(state, registration.teamId)}</strong><small>Líder: {userName(state, registration.leaderId)}<br />{registration.memberIds.map(id => userName(state, id)).join(', ')}</small></div><Status color="green">6/6 inscritos</Status></div>) : <p className="muted">{open ? 'Aguardando a inscrição dos times.' : tournament.teamIds.map(id => teamName(state, id)).join(', ')}</p>}</div>
+    {open && (mine.length ? mine.map(team => { const error = registrationError(state, user.id, tournament, team); return <div className="registration-option" key={team.id}><strong>{team.name}</strong><p className="muted">{error || 'Equipe completa — inscrição disponível.'}</p><Button disabled={Boolean(error)} onClick={() => act((draft, actor) => registerTeam(draft, actor, tournament.id, team.id), 'Time inscrito com os 6 jogadores.')}>{tournament.teamIds.includes(team.id) ? 'Time inscrito' : 'Inscrever time com 6 jogadores'}</Button></div>; }) : user.role === 'student' && <p className="notice">Somente o líder que criou o time pode inscrevê-lo. Monte sua equipe na aba Equipes.</p>)}
+    {tournament.rounds.length > 0 && <div className="bracket">{tournament.rounds.map((round, index) => <div className="round" key={index}><h4>{index === tournament.rounds.length - 1 ? 'Final' : `Rodada ${index + 1}`}</h4>{round.map((match, matchIndex) => <div className="match" key={matchIndex}><div className={`match-row ${match.winner && match.winner === match.a ? 'winner' : ''}`}><span>{teamName(state, match.a)}</span><strong>{match.scoreA ?? '—'}</strong></div><div className={`match-row ${match.winner && match.winner === match.b ? 'winner' : ''}`}><span>{teamName(state, match.b)}</span><strong>{match.scoreB ?? '—'}</strong></div></div>)}</div>)}</div>}
+  </Card>;
+}
