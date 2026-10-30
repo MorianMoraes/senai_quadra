@@ -44,5 +44,5 @@ export type Game = z.infer<typeof gameSchema>;
 export type MatchSet = z.infer<typeof setSchema>;
 export type Tournament = z.infer<typeof tournamentSchema>;
 export type DemoState = z.infer<typeof stateSchema>;
-export type Route = 'dashboard' | 'calendar' | 'createGame' | 'management' | 'teams' | 'tournaments' | 'history' | 'profile' | 'users' | 'logs';
+export type Route = 'dashboard' | 'calendar' | 'createGame' | 'management' | 'teams' | 'tournaments' | 'history' | 'howItWorks' | 'profile' | 'users' | 'logs';
 export type Theme = 'light' | 'dark';

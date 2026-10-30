@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type InputHTMLAttributes, type ReactNode } from 'react';
 import type { User } from '../types/models';
 import { safePhoto } from '../utils/format';
 import { useApp } from '../contexts/AppContext';
@@ -6,7 +6,7 @@ import { useApp } from '../contexts/AppContext';
 export function Button({ variant = 'primary', className = '', type = 'button', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' | 'success' }) {
   return <button type={type} className={`btn btn-${variant} ${className}`} {...props} />;
 }
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) { return <section className={`card ${className}`}>{children}</section>; }
+export function Card({ children, className = '', style }: { children: ReactNode; className?: string; style?: CSSProperties }) { return <section className={`card ${className}`} style={style}>{children}</section>; }
 export function Logo() { return <div className="logo"><div className="logo-mark">S</div><span>SENAI Sports</span></div>; }
 export function Avatar({ user }: { user: User }) {
   const photo = safePhoto(user.photo);

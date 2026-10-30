@@ -15,6 +15,7 @@ import { HistoryPage } from './pages/HistoryPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { LogsPage, UsersPage } from './pages/AdminPages';
 import { ManagementPage } from './pages/ManagementPage';
+import { HowItWorksPage } from './pages/HowItWorksPage';
 
 function SignedInApp({ toggleTheme }: { toggleTheme: () => void }) {
   const { user, logout } = useApp(), [route, setRoute] = useState<Route>('dashboard');
@@ -25,7 +26,7 @@ function SignedInApp({ toggleTheme }: { toggleTheme: () => void }) {
     dashboard: <DashboardPage navigate={setRoute} />, calendar: <CalendarPage navigate={setRoute} />,
     createGame: <CreateGamePage navigate={setRoute} />,
     management: <ManagementPage />, teams: <TeamsPage />, tournaments: <TournamentsPage />, history: <HistoryPage />,
-    profile: <ProfilePage />, users: <UsersPage />, logs: <LogsPage />,
+    profile: <ProfilePage />, users: <UsersPage />, logs: <LogsPage />, howItWorks: <HowItWorksPage navigate={setRoute} />,
   } satisfies Record<Route, React.ReactNode>;
   return <AppLayout route={active} navigate={setRoute} toggleTheme={toggleTheme}>{pages[active]}</AppLayout>;
 }
