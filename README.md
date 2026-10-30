@@ -23,7 +23,7 @@ O workflow `.github/workflows/pages.yml` compila o app e publica a pasta `dist` 
 
 O `vercel.json` fixa o framework Vite, `npm install`, `npm run build` e a saída `dist`. O diretório raiz do repositório contém o app. A Production Branch não pode ser definida por esse arquivo: configure `main` em **Project Settings → Git → Production Branch**.
 
-Em **Project Settings → Environment Variables**, configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` para Production, Preview e Development. O build na Vercel falha com uma mensagem clara se essas variáveis estiverem ausentes. Valores `VITE_*` são incorporados ao JavaScript do navegador; use apenas a publishable key, nunca uma chave `service_role` ou `secret`.
+Em **Project Settings → Environment Variables**, habilite a exposição das variáveis de sistema e configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` para Production, Preview e Development. Com `VERCEL=1`, o build falha com uma mensagem clara se essas variáveis estiverem ausentes. Valores `VITE_*` são incorporados ao JavaScript do navegador; use apenas a publishable key, nunca uma chave `service_role` ou `secret`.
 
 O `.env.local` desta máquina contém os valores locais e está ignorado pelo Git. Este repositório não está conectado ao painel da Vercel por este ambiente; a Production Branch e as variáveis precisam ser confirmadas no painel.
 
