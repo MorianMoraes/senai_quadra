@@ -22,8 +22,6 @@ export function AuthPage() {
         password: String(data.get('password') ?? ''),
         confirm: String(data.get('confirm') ?? ''),
         turma: field(data, 'turma'),
-        idade: Number(field(data, 'idade')),
-        matricula: field(data, 'matricula'),
         photo: field(data, 'photo'),
       });
     } else {
@@ -51,8 +49,6 @@ export function AuthPage() {
             {mode === 'register' && <>
               <Field label="Perfil" value="Aluno" readOnly />
               <Field name="turma" label="Turma" required placeholder="Ex.: 2º A" />
-              <Field name="idade" label="Idade" type="number" min={1} max={100} required />
-              <Field name="matricula" label="Matrícula" required />
               <Field name="photo" label="Foto (URL opcional)" type="url" placeholder="https://..." />
             </>}
             {mode !== 'forgot' && <div className={mode === 'register' ? 'form-field full' : ''}>

@@ -4,7 +4,7 @@ import { safePhoto, uid } from '../utils/format';
 
 export interface Registration {
   name: string; email: string; password: string; confirm: string;
-  turma: string; idade: number; matricula: string; photo: string;
+  turma: string; photo: string; idade?: number; matricula?: string;
 }
 export interface GoogleIdentity {
   id: string;
@@ -59,15 +59,15 @@ export function authenticate(state: DemoState, email: string, password: string):
   return user;
 }
 export function registerStudent(state: DemoState, input: Registration): User {
-  const name = requireName(input.name), email = input.email.trim().toLowerCase();
+  const name = requireName(input.name), email = input.email.trim().toLowerCase(), matricula = input.matricula?.trim();
   if (!email || !email.includes('@')) throw new Error('Informe um e-mail válido.');
   if (state.users.some(user => user.email.toLowerCase() === email)) throw new Error('Este e-mail já está cadastrado.');
   if (!passwordScore(input.password).valid) throw new Error('A senha ainda não atende a todos os requisitos.');
   if (input.password !== input.confirm) throw new Error('As senhas não coincidem.');
-  if (!input.turma.trim() || !input.matricula.trim() || !Number.isInteger(input.idade) || input.idade < 1 || input.idade > 100) throw new Error('Preencha turma, idade e matrícula corretamente.');
-  if (state.users.some(user => user.matricula.toLowerCase() === input.matricula.trim().toLowerCase())) throw new Error('Esta matrícula já está cadastrada.');
+  if (!input.turma.trim() || (input.idade !== undefined && (!Number.isInteger(input.idade) || input.idade < 1 || input.idade > 100)) || (input.matricula !== undefined && !matricula)) throw new Error('Preencha turma, idade e matrícula corretamente.');
+  if (matricula && state.users.some(user => user.matricula.toLowerCase() === matricula.toLowerCase())) throw new Error('Esta matrícula já está cadastrada.');
   // O cadastro público permanece exclusivo de alunos, independentemente dos campos enviados.
-  const user: User = { id: uid('u'), role: 'student', name, email, password: input.password, turma: input.turma.trim(), idade: input.idade, matricula: input.matricula.trim(), photo: safePhoto(input.photo), suspended: false };
+  const user: User = { id: uid('u'), role: 'student', name, email, password: input.password, turma: input.turma.trim(), idade: input.idade ?? 0, matricula: matricula ?? 'Não informada', photo: safePhoto(input.photo), suspended: false };
   state.users.push(user);
   state.stats.push({ userId: user.id, points: 0, serves: 0, aces: 0, blocks: 0, attacks: 0, errors: 0, wins: 0, losses: 0 });
   return user;
