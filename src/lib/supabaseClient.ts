@@ -1,26 +1,30 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Configure as variáveis do Supabase no .env.local')
+if (!supabaseUrl || !supabasePublishableKey) {
+  throw new Error('Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.local or the deploy environment.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+export const supabase = createClient(supabaseUrl, supabasePublishableKey);
 
-export async function testarConexaoSupabase() {
-  const { data, error } = await supabase.auth.getUser()
+export async function testarConexaoSupabase(): Promise<void> {
+  try {
+    const { error } = await supabase.auth.getUser();
 
-  if (error?.message === 'Auth session missing!') {
-    console.log('Supabase acessível! Nenhum usuário está logado.')
-    return
+    if (error?.message === 'Auth session missing!') {
+      console.info('No active Supabase session.');
+      return;
+    }
+
+    if (error) {
+      console.error('Could not query the Supabase session:', error.message);
+      return;
+    }
+
+    console.info('Supabase session queried.');
+  } catch (error) {
+    console.error('Could not query the Supabase session:', error instanceof Error ? error.message : 'unknown error');
   }
-
-  if (error) {
-    console.error('Erro na conexão com Supabase:', error.message)
-    return
-  }
-
-  console.log('Conexão funcionando!', data.user?.id)
 }

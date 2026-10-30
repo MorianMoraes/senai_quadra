@@ -2,7 +2,7 @@
 
 **Etapa 1 implementada:** telas convertidas em componentes React, TypeScript estrito e Vite, preservando o layout, a paleta SENAI e os fluxos existentes.
 
-Esta etapa ainda é uma demonstração local. Supabase, autenticação real, banco, RLS, Storage e Realtime serão implementados nas etapas seguintes. O `.env` está preparado, mas ainda não é consumido pelo código. **Não há migrations nesta etapa.**
+O app ainda usa autenticação e dados de demonstração no navegador. `src/lib/supabaseClient.ts` inicializa o cliente Supabase e consulta a sessão, mas login, cadastro e dados esportivos ainda não usam Supabase Auth nem tabelas. Não há migrations ou schema de banco neste repositório.
 
 ## Executar
 
@@ -19,11 +19,20 @@ npm run dev
 
 O workflow `.github/workflows/pages.yml` compila o app e publica a pasta `dist` quando há push na branch `main`. Em **Settings → Pages**, selecione **GitHub Actions** como origem de publicação. O endereço do projeto será `https://morianmoraes.github.io/senai_quadra/`.
 
+## Publicação na Vercel
+
+O `vercel.json` fixa o framework Vite, `npm install`, `npm run build` e a saída `dist`. O diretório raiz do repositório contém o app. A Production Branch não pode ser definida por esse arquivo: configure `main` em **Project Settings → Git → Production Branch**.
+
+Em **Project Settings → Environment Variables**, configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` para Production, Preview e Development. O build na Vercel falha com uma mensagem clara se essas variáveis estiverem ausentes. Valores `VITE_*` são incorporados ao JavaScript do navegador; use apenas a publishable key, nunca uma chave `service_role` ou `secret`.
+
+O `.env.local` desta máquina contém os valores locais e está ignorado pelo Git. Este repositório não está conectado ao painel da Vercel por este ambiente; a Production Branch e as variáveis precisam ser confirmadas no painel.
+
 O `index.html` principal agora carrega TypeScript pelo Vite. Abrir esse arquivo diretamente, ou por Live Server, não executa a aplicação React.
 
 ## Arquivos criados e alterados
 
 - `package.json`, `package-lock.json`: dependências e comandos.
+- `vercel.json`: framework e comandos de build da Vercel.
 - `tsconfig.json`: `strict`, `noUncheckedIndexedAccess` e verificação sem emissão.
 - `vite.config.ts`, `playwright.config.ts`: build e testes.
 - `index.html`: entrada alterada para `src/main.tsx`.
@@ -38,7 +47,7 @@ O `index.html` principal agora carrega TypeScript pelo Vite. Abrir esse arquivo 
 - `src/styles/app.css`: estilos migrados e fontes Barlow/Barlow Condensed fornecidas localmente.
 - `src/demo/`: seed fictício e armazenamento temporário isolados.
 - `tests/`: fluxos completos no Chrome.
-- `.env`, `.env.example`: campos públicos do Supabase. `.env` ignorado pelo Git.
+- `.env.local`, `.env.example`: nomes das variáveis públicas do Supabase. Arquivos `.env*` locais são ignorados pelo Git, exceto `.env.example`.
 
 As telas React não utilizam `any`, `@ts-ignore`, `@ts-nocheck` ou `dangerouslySetInnerHTML`.
 
@@ -78,16 +87,16 @@ Teste campeonato: entre como professor e crie um campeonato. Saia e entre como a
 
 ## .env e Supabase
 
-O `.env` local já foi criado vazio. Em outra máquina, copie `.env.example` para `.env`:
+O `.env.local` desta máquina contém os valores locais e está ignorado pelo Git. Em outra máquina, copie `.env.example` para `.env.local`:
 
 ```env
 VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
+VITE_SUPABASE_PUBLISHABLE_KEY=
 ```
 
 Preencha com URL e chave **pública** do seu projeto Supabase. Não use `service_role`, chave secreta nem senha do banco. Variáveis `VITE_*` são incluídas no frontend.
 
-**Configuração Supabase exigida para a Etapa 1: nenhuma. Migrations criadas: nenhuma.** A Etapa 2 configurará o cliente. As etapas de banco e autenticação incluirão migrations, tipos reais do banco, RLS, Auth, Google e Storage. Nenhuma chave ou estrutura de banco foi inventada.
+O cliente exige as duas variáveis acima para consultar a sessão durante a inicialização. O login, cadastro e persistência das telas continuam demonstrativos e usam armazenamento local; a conexão completa com Supabase Auth e tabelas ainda depende do schema, migrations e políticas RLS do projeto.
 
 ## Verificação
 
@@ -99,7 +108,7 @@ npm run build
 npm run preview
 ```
 
-Testes de navegador usam Chrome instalado em 1440 × 1000 e 390 × 844. A pasta ignorada `test-results/` guarda capturas e traces de falhas. Build gera `dist/`; preview permite revisão local. Não publique como aplicação final antes de concluir Supabase e RLS.
+Testes de navegador usam Chrome instalado em 1440 × 1000 e 390 × 844. A pasta ignorada `test-results/` guarda capturas e traces de falhas. Build gera `dist/`; preview permite revisão local. A autenticação e os dados locais da demo não substituem Supabase Auth e RLS em produção.
 
 ## Erros comuns
 
@@ -108,6 +117,6 @@ Testes de navegador usam Chrome instalado em 1440 × 1000 e 390 × 844. A pasta 
 - Porta ocupada: use a porta indicada pelo Vite. Os testes exigem a porta 5173 livre.
 - Dados locais indisponíveis: restaure um backup válido; os dados não foram apagados.
 - Chrome ausente: instale Chrome para executar os testes de navegador.
-- Alterou `.env`: após a futura integração, reinicie Vite. Nesta etapa as variáveis ainda não são consumidas.
+- Alterou `.env.local`: reinicie o Vite para carregar os novos valores.
 
 Referências: [Vite — início](https://vite.dev/guide/) e [React com TypeScript](https://react.dev/learn/typescript).
