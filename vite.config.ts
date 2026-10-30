@@ -1,4 +1,8 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig({ plugins: [react()], base: './', test: { include: ['src/**/*.test.ts'] } });
+export default defineConfig({
+  plugins: [react()],
+  base: process.env.GITHUB_ACTIONS === 'true' ? '/senai_quadra/' : './',
+  test: { include: ['src/**/*.test.ts'] },
+});

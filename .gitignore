@@ -1,18 +1,11 @@
-<<<<<<< HEAD
-﻿node_modules/
-=======
 .tools/
 node_modules/
->>>>>>> fc4e0729982ecbdd80f7aaea58853cc4b273c4c7
 dist/
 .env
 .env.*
 !.env.example
-<<<<<<< HEAD
-=======
 *.tsbuildinfo
 debug.log
 test-results/
 playwright-report/
 .browser-*/
->>>>>>> fc4e0729982ecbdd80f7aaea58853cc4b273c4c7

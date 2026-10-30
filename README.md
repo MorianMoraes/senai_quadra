@@ -6,14 +6,18 @@ Esta etapa ainda é uma demonstração local. Supabase, autenticação real, ban
 
 ## Executar
 
-No Windows desta máquina, abra **`iniciar.cmd`**. Ele usa o Node instalado ou a cópia portátil em `../.tools/`. Mantenha o terminal aberto e acesse o endereço indicado pelo Vite, normalmente `http://127.0.0.1:5173`.
+No Windows desta máquina, abra **`iniciar.cmd`**. Ele usa o Node instalado ou a cópia portátil em `.tools/`. Mantenha o terminal aberto e acesse o endereço indicado pelo Vite, normalmente `http://127.0.0.1:5173`.
 
-Em outra máquina, instale Node.js 22.12 ou superior, entre na pasta `senai-sports` e execute:
+Em outra máquina, instale Node.js 22.12 ou superior, entre na raiz deste repositório e execute:
 
 ```sh
 npm install
 npm run dev
 ```
+
+## Publicação no GitHub Pages
+
+O workflow `.github/workflows/pages.yml` compila o app e publica a pasta `dist` quando há push na branch `main`. Em **Settings → Pages**, selecione **GitHub Actions** como origem de publicação. O endereço do projeto será `https://morianmoraes.github.io/senai_quadra/`.
 
 O `index.html` principal agora carrega TypeScript pelo Vite. Abrir esse arquivo diretamente, ou por Live Server, não executa a aplicação React.
 
