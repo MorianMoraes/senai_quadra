@@ -39,7 +39,6 @@ O `index.html` principal agora carrega TypeScript pelo Vite. Abrir esse arquivo 
 - `src/demo/`: seed fictício e armazenamento temporário isolados.
 - `tests/`: fluxos completos no Chrome.
 - `.env`, `.env.example`: campos públicos do Supabase. `.env` ignorado pelo Git.
-- `legacy/`: JavaScript, CSS e teste antigos preservados, fora do build React.
 
 As telas React não utilizam `any`, `@ts-ignore`, `@ts-nocheck` ou `dangerouslySetInnerHTML`.
 
