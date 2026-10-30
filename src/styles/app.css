@@ -312,6 +312,10 @@ tr:last-child td { border-bottom: 0; }
 .toast.error { border-left-color: var(--danger); }
 .toast.success { border-left-color: var(--success); }
 .toast-close { float: right; padding-left: 12px; }
+.pwa-install-control { position: fixed; z-index: 25; right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); display: grid; justify-items: end; gap: 8px; }
+.pwa-install-button { display: inline-flex; align-items: center; gap: 8px; box-shadow: var(--shadow); }
+.pwa-install-button svg { width: 18px; height: 18px; }
+.pwa-install-help { max-width: min(300px, calc(100vw - 36px)); padding: 12px 14px; border: 1px solid var(--border); border-radius: 11px; color: var(--text); background: var(--panel); box-shadow: var(--shadow); }
 .suspended-page { min-height: 100dvh; }
 
 @media (max-width: 1180px) {

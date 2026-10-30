@@ -4,6 +4,7 @@ import { useApp } from './contexts/AppContext';
 import { useTheme } from './hooks/useTheme';
 import { AppLayout, navItems } from './layouts/AppLayout';
 import { Button, Logo, Toast } from './components/ui';
+import { PwaInstallButton } from './components/PwaInstallButton';
 import { AuthPage } from './pages/AuthPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { CalendarPage } from './pages/CalendarPage';
@@ -31,5 +32,5 @@ function SignedInApp({ toggleTheme }: { toggleTheme: () => void }) {
 }
 export default function App() {
   const { user } = useApp(), { toggleTheme } = useTheme();
-  return <>{user ? <SignedInApp key={user.id} toggleTheme={toggleTheme} /> : <AuthPage />}<Toast /></>;
+  return <>{user ? <SignedInApp key={user.id} toggleTheme={toggleTheme} /> : <AuthPage />}<PwaInstallButton /><Toast /></>;
 }
