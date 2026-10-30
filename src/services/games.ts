@@ -3,21 +3,24 @@ import { audit, requireActor, requireTeacher } from './auth';
 import { startTime, uid } from '../utils/format';
 
 export type NewGame = Pick<Game, 'date' | 'time' | 'team1' | 'team2' | 'description' | 'notes' | 'limit' | 'status'>;
+export const MAX_GAME_PLAYERS = 20;
+export const GAME_DURATION_MINUTES = 90;
 export function createGame(state: DemoState, actorId: string, input: NewGame): void {
   requireTeacher(state, actorId);
-  const start = startTime(input.date, input.time), end = start + 90 * 60_000;
+  const start = startTime(input.date, input.time), end = start + GAME_DURATION_MINUTES * 60_000;
   if (!Number.isFinite(start) || start < Date.now() + 24 * 60 * 60_000) throw new Error('Crie o jogo com pelo menos 1 dia de antecedência.');
   if (!Number.isInteger(input.limit) || input.limit < 1) throw new Error('Informe um limite de jogadores válido.');
+  if (input.limit > MAX_GAME_PLAYERS) throw new Error(`Cada partida aceita no máximo ${MAX_GAME_PLAYERS} jogadores.`);
   if (input.team1 && input.team1 === input.team2) throw new Error('Escolha equipes diferentes.');
   if (state.games.some(game => game.status !== 'cancelado' && start < startTime(game.date, game.time) + game.duration * 60_000 && end > startTime(game.date, game.time))) throw new Error('Já existe um jogo ocupando a quadra nesse horário.');
-  state.games.push({ ...input, id: uid('g'), duration: 90, court: 'Quadra SENAI', participantIds: [], sets: [], createdBy: actorId });
+  state.games.push({ ...input, id: uid('g'), duration: GAME_DURATION_MINUTES, court: 'Quadra SENAI', participantIds: [], sets: [], createdBy: actorId });
   audit(state, actorId, `criou um jogo em ${input.date} às ${input.time}`);
 }
 export function joinGame(state: DemoState, actorId: string, gameId: string): void {
   const actor = requireActor(state, actorId), game = state.games.find(item => item.id === gameId);
   if (!game || actor.role !== 'student' || !['inscricoes', 'agendado'].includes(game.status) || startTime(game.date, game.time) <= Date.now()) throw new Error('As inscrições para este jogo não estão disponíveis.');
   if (game.participantIds.includes(actorId)) throw new Error('Você já está inscrito.');
-  if (game.participantIds.length >= game.limit) throw new Error('O jogo atingiu o limite de participantes.');
+  if (game.participantIds.length >= Math.min(game.limit, MAX_GAME_PLAYERS)) throw new Error('O jogo atingiu o limite de participantes.');
   game.participantIds.push(actorId);
 }
 export function leaveGame(state: DemoState, actorId: string, gameId: string): void {

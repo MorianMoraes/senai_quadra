@@ -20,9 +20,9 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         manifest: {
-          name: 'SENAI Quadra',
-          short_name: 'SENAI Quadra',
-          description: 'Organize jogos, equipes e campeonatos do SENAI.',
+          name: 'SENAI Sports',
+          short_name: 'SENAI Sports',
+          description: 'Organize jogos, equipes e campeonatos do SENAI Sports.',
           lang: 'pt-BR',
           start_url: appScope,
           scope: appScope,

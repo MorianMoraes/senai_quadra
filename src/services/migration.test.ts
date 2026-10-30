@@ -3,7 +3,7 @@ import { seed } from '../demo/seed';
 import { DEMO_KEY, loadDemo } from '../demo/storage';
 import { createTournament, registerTeam } from './tournaments';
 import { registerStudent } from './auth';
-import { createGame, saveScore } from './games';
+import { createGame, joinGame, saveScore } from './games';
 import { saveRoster } from './teams';
 import { addDays } from '../utils/format';
 import { stateSchema } from '../types/models';
@@ -64,6 +64,20 @@ describe('Migração da demonstração', () => {
     createGame(state, 'u2', input);
     expect(() => createGame(state, 'u2', { ...input, time: '15:00' })).toThrow('quadra');
     expect(() => createGame(state, 'u2', { ...input, time: '15:30' })).not.toThrow();
+  });
+  it('limita partidas a 20 jogadores e define duração de 90 minutos', () => {
+    const state = structuredClone(seed), input = { date: addDays(10), time: '14:00', team1: 't1', team2: 't2', description: '', notes: '', limit: 20, status: 'inscricoes' as const };
+    expect(() => createGame(state, 'u2', { ...input, limit: 21 })).toThrow('20 jogadores');
+    createGame(state, 'u2', input);
+    const game = state.games[state.games.length - 1]!;
+    expect(game.limit).toBe(20);
+    expect(game.duration).toBe(90);
+  });
+  it('não permite ultrapassar 20 participantes em registros antigos com limite maior', () => {
+    const state = structuredClone(seed), game = state.games.find(item => item.id === 'g1')!;
+    game.limit = 25;
+    game.participantIds = Array.from({ length: 20 }, (_, index) => `legacy-${index}`);
+    expect(() => joinGame(state, 'u4', game.id)).toThrow('limite de participantes');
   });
   it('editar placar não acumula as mesmas estatísticas duas vezes', () => {
     const state = structuredClone(seed), sets = [{ a: 25, b: 15 }, { a: 25, b: 10 }];

@@ -4,11 +4,11 @@ import type { Route, UserRole } from '../types/models';
 import { roleLabel } from '../utils/format';
 import { Avatar, Button, Logo } from '../components/ui';
 
-export const titles: Record<Route, string> = { dashboard: 'Início', calendar: 'Calendário', createGame: 'Criar jogo', management: 'Gerenciamento', teams: 'Equipes', tournaments: 'Campeonatos', ranking: 'Ranking', history: 'Histórico', profile: 'Perfil', users: 'Usuários', logs: 'Logs' };
-const icons: Record<Route, string> = { dashboard: 'M3 10.8 12 3l9 7.8M5.5 9.2V21h13V9.2M9.5 21v-7h5v7', calendar: 'M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Zm3 8h2m3 0h2m-7 4h2m3 0h2', createGame: 'M12 5v14m-7-7h14', management: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0-5v2m0 14v2m9-9h-2M5 12H3m15.4-6.4-1.4 1.4M7 17l-1.4 1.4m12.8 0L17 17M7 7 5.6 5.6', teams: 'M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2m6.5-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8.5 1a4 4 0 0 1 3 3.9V21m-3-18a4 4 0 0 1 0 7.8', tournaments: 'm12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z', ranking: 'M4 19V9m8 10V5m8 14v-7M2 21h20', history: 'M3 12a9 9 0 1 0 2.6-6.4L3 8m0-5v5h5m4-1v5l3 2', users: 'M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2m6.5-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-5v6m3-3h-6', logs: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01', profile: 'M20 21a8 8 0 0 0-16 0m8-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z' };
+export const titles: Record<Route, string> = { dashboard: 'Início', calendar: 'Calendário', createGame: 'Criar jogo', management: 'Gerenciamento', teams: 'Equipes', tournaments: 'Campeonatos', ranking: 'Ranking e histórico', profile: 'Perfil', users: 'Usuários', logs: 'Logs' };
+const icons: Record<Route, string> = { dashboard: 'M3 10.8 12 3l9 7.8M5.5 9.2V21h13V9.2M9.5 21v-7h5v7', calendar: 'M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Zm3 8h2m3 0h2m-7 4h2m3 0h2', createGame: 'M12 5v14m-7-7h14', management: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0-5v2m0 14v2m9-9h-2M5 12H3m15.4-6.4-1.4 1.4M7 17l-1.4 1.4m12.8 0L17 17M7 7 5.6 5.6', teams: 'M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2m6.5-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8.5 1a4 4 0 0 1 3 3.9V21m-3-18a4 4 0 0 1 0 7.8', tournaments: 'm12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z', ranking: 'M3 18h5V8H3v10Zm7 0h5V4h-5v14Zm7 0h5V11h-5v7ZM2 21h20', users: 'M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2m6.5-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-5v6m3-3h-6', logs: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01', profile: 'M20 21a8 8 0 0 0-16 0m8-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z' };
 
 export function navItems(role: UserRole): Route[] {
-  const items: Route[] = ['dashboard', 'calendar', 'management', 'ranking', 'history'];
+  const items: Route[] = ['dashboard', 'calendar', 'management', 'ranking'];
   if (role === 'teacher') items.splice(2, 0, 'createGame');
   if (role === 'director') items.push('users', 'logs');
   return items;

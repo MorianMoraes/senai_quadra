@@ -19,6 +19,15 @@ async function managementSection(page: Page, label: string) { await navigate(pag
 test('professor cria campeonato e líder inscreve seis jogadores; navegação e persistência', async ({ page }, testInfo) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/'); await login(page, 'professor');
+  await navigate(page, 'createGame');
+  const playerLimit = page.getByLabel('Limite de jogadores');
+  await expect(playerLimit).toHaveAttribute('max', '20');
+  await expect(playerLimit).toHaveValue('20');
+  await expect(page.getByLabel('Duração (min)')).toHaveValue('90');
+  await expect(page.getByText(/até 20 jogadores e dura no máximo 90 minutos/)).toBeVisible();
+  await playerLimit.fill('21');
+  expect(await playerLimit.evaluate((input: HTMLInputElement) => input.checkValidity())).toBe(false);
+  await navigate(page, 'management');
   await managementSection(page, 'Campeonatos'); await page.getByRole('button', { name: '＋ Criar campeonato' }).click();
   await page.getByLabel('Nome', { exact: true }).fill('Copa SENAI React');
   const date = new Date(); date.setDate(date.getDate() + 7);
@@ -46,7 +55,8 @@ test('professor cria campeonato e líder inscreve seis jogadores; navegação e 
   await expect(page.getByRole('heading', { name: 'Jogos e eventos' })).toBeVisible();
   await page.getByLabel('Filtrar por quadra').selectOption('Quadra SENAI');
   await page.getByRole('button', { name: 'Mês', exact: true }).click();
-  for (const route of ['dashboard', 'calendar', 'ranking', 'history']) await navigate(page, route);
+  for (const route of ['dashboard', 'calendar', 'ranking']) await navigate(page, route);
+  await expect(page.getByRole('heading', { name: 'Histórico de partidas' })).toBeVisible();
   if (testInfo.project.name === 'desktop') {
     await page.getByRole('button', { name: 'Recolher menu' }).click();
     await expect(page.getByRole('button', { name: 'Alternar tema' })).toBeVisible();

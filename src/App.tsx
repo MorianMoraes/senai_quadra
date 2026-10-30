@@ -13,7 +13,6 @@ import { TeamsPage } from './pages/TeamsPage';
 import { TournamentsPage } from './pages/TournamentsPage';
 import { RankingPage } from './pages/RankingPage';
 import { ProfilePage } from './pages/ProfilePage';
-import { HistoryPage } from './pages/HistoryPage';
 import { LogsPage, UsersPage } from './pages/AdminPages';
 import { ManagementPage } from './pages/ManagementPage';
 
@@ -26,7 +25,7 @@ function SignedInApp({ toggleTheme }: { toggleTheme: () => void }) {
     dashboard: <DashboardPage navigate={setRoute} />, calendar: <CalendarPage navigate={setRoute} />,
     createGame: <CreateGamePage navigate={setRoute} />,
     management: <ManagementPage />, teams: <TeamsPage />, tournaments: <TournamentsPage />, ranking: <RankingPage />,
-    history: <HistoryPage />, profile: <ProfilePage />, users: <UsersPage />, logs: <LogsPage />,
+    profile: <ProfilePage />, users: <UsersPage />, logs: <LogsPage />,
   } satisfies Record<Route, React.ReactNode>;
   return <AppLayout route={active} navigate={setRoute} toggleTheme={toggleTheme}>{pages[active]}</AppLayout>;
 }
