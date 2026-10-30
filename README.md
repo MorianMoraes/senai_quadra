@@ -2,7 +2,7 @@
 
 **Etapa 1 implementada:** telas convertidas em componentes React, TypeScript estrito e Vite, preservando o layout, a paleta SENAI e os fluxos existentes.
 
-O app ainda usa autenticação e dados de demonstração no navegador. `src/lib/supabaseClient.ts` inicializa o cliente Supabase e consulta a sessão, mas login, cadastro e dados esportivos ainda não usam Supabase Auth nem tabelas. Não há migrations ou schema de banco neste repositório.
+O login social com Google usa Supabase Auth. O login tradicional e os dados esportivos continuam locais e demonstrativos; ainda não há tabelas, migrations ou schema de banco neste repositório. Contas Google recebem perfil local de aluno, sem privilégios administrativos.
 
 ## Executar
 
@@ -39,7 +39,7 @@ O `index.html` principal agora carrega TypeScript pelo Vite. Abrir esse arquivo 
 - `src/App.tsx`: navegação por perfil.
 - `src/components/`: campos, botões, cards, modal, toast e componentes esportivos.
 - `src/layouts/`: menu e cabeçalho.
-- `src/pages/`: cadastro, dashboard, calendário, jogos, equipes, campeonatos, ranking, histórico, perfil, usuários e logs.
+- `src/pages/`: cadastro, dashboard, calendário, jogos, equipes, campeonatos, histórico com ranking integrado, perfil, usuários e logs.
 - `src/services/`: regras de cadastro, equipes, jogos e campeonatos.
 - `src/types/models.ts`: tipos e validação dos dados locais.
 - `src/contexts/`, `src/hooks/`: estado e tema.
@@ -53,7 +53,7 @@ As telas React não utilizam `any`, `@ts-ignore`, `@ts-nocheck` ou `dangerouslyS
 
 ## Fluxos desta etapa
 
-- Login de demonstração e cadastro público **somente como aluno**.
+- Login tradicional de demonstração, cadastro público **somente como aluno** e login/cadastro Google via Supabase Auth.
 - Mostrar/ocultar senha e validação de senha e matrícula.
 - Navegação, calendário, partidas, ranking, histórico e perfil.
 - Professor cria jogos de 90 minutos com antecedência mínima de 24 horas e validação local de conflito da quadra.
@@ -73,7 +73,7 @@ O adaptador `src/demo/storage.ts` isola temporariamente a persistência anterior
 
 O navegador separa dados por origem. O endereço do Vite não acessa automaticamente dados de `file://` ou de outra porta do Live Server; nesses casos a demo inicia com o seed. Não existe importação para Supabase nesta etapa.
 
-Senhas fictícias, login, sessão e permissões locais **não são segurança de produção**. O bloqueio de tentativas nesta etapa é demonstrativo, em memória, e reinicia ao recarregar. Recuperação de senha não envia e-mail. Supabase Auth e RLS devem substituir esse adaptador antes do uso com dados reais.
+As senhas e permissões do login tradicional, além dos dados esportivos locais, **não são segurança de produção**. O login Google é autenticado pelo Supabase; o perfil e as permissões de aluno são espelhados no armazenamento local. O bloqueio de tentativas no fluxo tradicional é demonstrativo, em memória, e reinicia ao recarregar. Recuperação de senha não envia e-mail. Para dados reais compartilhados e permissões seguras, é necessário migrar os perfis e dados esportivos para tabelas protegidas por RLS.
 
 ## Contas de teste
 
@@ -96,7 +96,13 @@ VITE_SUPABASE_PUBLISHABLE_KEY=
 
 Preencha com URL e chave **pública** do seu projeto Supabase. Não use `service_role`, chave secreta nem senha do banco. Variáveis `VITE_*` são incluídas no frontend.
 
-O cliente exige as duas variáveis acima para consultar a sessão durante a inicialização. O login, cadastro e persistência das telas continuam demonstrativos e usam armazenamento local; a conexão completa com Supabase Auth e tabelas ainda depende do schema, migrations e políticas RLS do projeto.
+O cliente exige as duas variáveis acima. Para habilitar o login Google, configure também o provedor no painel do Supabase:
+
+1. Em **Authentication → Sign In / Providers → Google**, habilite Google e informe o OAuth Client ID e Client Secret criados no Google Cloud. Os segredos ficam somente no painel do Supabase; não os coloque em variáveis `VITE_*`, no `.env.local` ou no Git.
+2. No Google Cloud, adicione como **Authorized JavaScript origins** `http://127.0.0.1:5173` e a origem do domínio de produção da Vercel. Em **Authorized redirect URIs**, use o callback do Supabase exibido na configuração do provedor Google (normalmente `https://<project-ref>.supabase.co/auth/v1/callback`).
+3. Em **Authentication → URL Configuration**, defina o Site URL de produção e permita os endereços de retorno utilizados. Inclua `http://127.0.0.1:5173/`, a URL raiz real da Vercel e, se usar GitHub Pages, `https://morianmoraes.github.io/senai_quadra/`.
+
+O frontend chama `signInWithOAuth` e recebe o retorno no endereço base atual do site. Não são necessárias novas variáveis de frontend: `.env.example` já lista a URL Supabase e a chave pública. O login tradicional e os dados esportivos continuam demonstrativos e locais; não há schema, migrations nem políticas RLS neste projeto.
 
 ## Verificação
 

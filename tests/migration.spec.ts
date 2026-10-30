@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 async function login(page: Page, role: 'aluno' | 'professor' | 'diretor') {
+  await expect(page.getByRole('button', { name: 'Continuar com Google' })).toBeVisible();
   await page.getByLabel('E-mail', { exact: true }).fill(`${role}@senai.local`);
   await page.getByLabel('Senha', { exact: true }).fill(({ aluno: 'Aluno@123', professor: 'Professor@123', diretor: 'Senai@123' })[role]);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
@@ -19,6 +20,9 @@ async function managementSection(page: Page, label: string) { await navigate(pag
 test('professor cria campeonato e líder inscreve seis jogadores; navegação e persistência', async ({ page }, testInfo) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/'); await login(page, 'professor');
+  const teacherRoutes = await page.locator('.nav button').evaluateAll(buttons => buttons.map(button => button.getAttribute('data-route')));
+  expect(teacherRoutes.indexOf('createGame')).toBe(teacherRoutes.indexOf('calendar') + 1);
+  await expect(page.locator('[data-route="ranking"]')).toHaveCount(0);
   await navigate(page, 'createGame');
   const playerLimit = page.getByLabel('Limite de jogadores');
   await expect(playerLimit).toHaveAttribute('max', '20');
@@ -55,7 +59,9 @@ test('professor cria campeonato e líder inscreve seis jogadores; navegação e 
   await expect(page.getByRole('heading', { name: 'Jogos e eventos' })).toBeVisible();
   await page.getByLabel('Filtrar por quadra').selectOption('Quadra SENAI');
   await page.getByRole('button', { name: 'Mês', exact: true }).click();
-  for (const route of ['dashboard', 'calendar', 'ranking']) await navigate(page, route);
+  for (const route of ['dashboard', 'calendar', 'history']) await navigate(page, route);
+  await expect(page.getByRole('heading', { name: 'Ranking', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ranking de alunos' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Histórico de partidas' })).toBeVisible();
   if (testInfo.project.name === 'desktop') {
     await page.getByRole('button', { name: 'Recolher menu' }).click();
@@ -78,6 +84,7 @@ test('professor cria campeonato e líder inscreve seis jogadores; navegação e 
 
 test('cadastro somente aluno e perfil editável em React', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Criar conta' }).click();
+  await expect(page.getByRole('button', { name: 'Continuar com Google' })).toBeVisible();
   await expect(page.getByLabel('Perfil', { exact: true })).toHaveValue('Aluno');
   await expect(page.getByLabel('Perfil', { exact: true })).toHaveAttribute('readonly', '');
   await page.getByLabel('Nome completo').fill('Aluno de Teste');
@@ -91,4 +98,10 @@ test('cadastro somente aluno e perfil editável em React', async ({ page }) => {
   await managementSection(page, 'Perfil'); await page.getByLabel('Nome completo').fill('Aluno Atualizado');
   await page.getByRole('button', { name: 'Salvar perfil' }).click();
   await expect(page.getByRole('heading', { name: 'Aluno Atualizado' })).toBeVisible();
+});
+
+test('mostra o cancelamento do retorno OAuth do Google', async ({ page }) => {
+  await page.goto('/?error=access_denied&error_description=User%20canceled');
+  await expect(page.getByRole('alert')).toContainText('Login com Google cancelado.');
+  await expect(page).toHaveURL('/');
 });

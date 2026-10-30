@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { seed } from '../demo/seed';
 import { DEMO_KEY, loadDemo } from '../demo/storage';
 import { createTournament, registerTeam } from './tournaments';
-import { registerStudent } from './auth';
+import { registerGoogleStudent, registerStudent } from './auth';
 import { createGame, joinGame, saveScore } from './games';
 import { saveRoster } from './teams';
 import { addDays } from '../utils/format';
@@ -57,6 +57,20 @@ describe('Migração da demonstração', () => {
     registerTeam(state, 'u4', state.tournaments[0]!.id, 't1');
     expect(state.tournaments[0]!.registrations[0]!.memberIds).toHaveLength(6);
     expect(state.tournaments[0]!.registrations[0]!.memberIds).not.toContain('u9');
+  });
+  it('vincula autenticação Google a perfil de aluno e nunca promove contas da equipe', () => {
+    const state = structuredClone(seed);
+    const created = registerGoogleStudent(state, { id: 'google-user-1', email: 'novo.aluno@example.com', name: 'Novo Aluno' });
+    expect(created.role).toBe('student');
+    expect(created.id).toBe('google-user-1');
+    expect(created.password).toBe('');
+    expect(state.stats.some(item => item.userId === created.id)).toBe(true);
+
+    const linked = registerGoogleStudent(state, { id: 'google-user-2', email: 'aluno@senai.local', name: 'Perfil Google' });
+    expect(linked.id).toBe('u4');
+    expect(linked.role).toBe('student');
+    expect(() => registerGoogleStudent(state, { id: 'google-teacher', email: 'professor@senai.local' })).toThrow('conta da equipe');
+    expect(() => registerGoogleStudent(state, { id: 'google-director', email: 'diretor@senai.local' })).toThrow('conta da equipe');
   });
   it('valida acesso e conflito da quadra na criação de jogos', () => {
     const state = structuredClone(seed), input = { date: addDays(8), time: '14:00', team1: 't1', team2: 't2', description: '', notes: '', limit: 18, status: 'inscricoes' as const };
