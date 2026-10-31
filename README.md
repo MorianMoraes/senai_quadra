@@ -13,6 +13,15 @@ O projeto ainda não possui backend de dados nem políticas RLS. Consulte “Mod
 
 No Windows desta máquina, abra **`iniciar.cmd`**. Ele usa o Node instalado ou a cópia portátil em `.tools/`. Mantenha o terminal aberto e acesse o endereço indicado pelo Vite, normalmente `http://127.0.0.1:5173`.
 
+### Acesso de demonstração
+
+Para testar as telas administrativas, use a conta fictícia incluída no seed local:
+
+- E-mail: `diretor@senai.local`
+- Senha: `Senai@123`
+
+Essa conta existe somente na demonstração salva no navegador (`localStorage`); ela não é uma conta do Supabase Auth e não deve ser usada em produção. Cada navegador mantém seus próprios dados de demonstração.
+
 Em outra máquina, instale Node.js 22.12 ou superior, entre na raiz deste repositório e execute:
 
 ```sh
