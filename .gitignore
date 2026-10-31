@@ -1,0 +1,12 @@
+.tools/
+node_modules/
+dist/
+.vercel/
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+debug.log
+test-results/
+playwright-report/
+.browser-*/
