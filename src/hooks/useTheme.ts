@@ -7,6 +7,7 @@ export function useTheme() {
   });
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#10171b' : '#f3f5f4');
     try { localStorage.setItem('senaiSportsThemeV1', theme); } catch { /* Tema continua disponível nesta sessão. */ }
   }, [theme]);
   return { theme, toggleTheme: () => setTheme(current => current === 'dark' ? 'light' : 'dark') };
