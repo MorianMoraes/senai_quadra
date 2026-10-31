@@ -36,6 +36,7 @@ export default defineConfig(() => {
       }),
     ],
     base: isGitHubPages ? appScope : './',
+    build: { emptyOutDir: true },
     test: { include: ['src/**/*.test.ts'] },
   };
 });

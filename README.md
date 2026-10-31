@@ -22,7 +22,9 @@ npm run dev
 
 ## Publicação no GitHub Pages
 
-O workflow `.github/workflows/pages.yml` compila o app e publica a pasta `dist` quando há push na branch `main`. Em **Settings → Pages**, selecione **GitHub Actions** como origem de publicação. O endereço do projeto será `https://morianmoraes.github.io/senai_quadra/`.
+O workflow `.github/workflows/pages.yml` compila o app, valida os caminhos dos arquivos e publica a pasta `dist` quando há push na branch `main`. Em **Settings → Pages**, selecione **GitHub Actions** como origem de publicação. O endereço do projeto será `https://morianmoraes.github.io/senai_quadra/`.
+
+Em **Settings → Secrets and variables → Actions**, cadastre os repository secrets `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`. O workflow os injeta somente durante o build. Se não estiverem cadastrados, o site ainda abre em modo de demonstração local e informa que a conexão com Supabase está indisponível. Use apenas a chave publicável; nunca use `service_role` no frontend.
 
 ## Publicação na Vercel
 
@@ -82,7 +84,7 @@ As senhas e permissões do login tradicional, além dos dados esportivos locais,
 
 ## Supabase
 
-O cliente Supabase não está conectado ao fluxo atual de autenticação ou persistência. A aplicação pública não depende de variáveis Supabase; a migração para um backend real ainda precisa ser implementada.
+Com os dois valores configurados, o cliente Supabase é inicializado e verifica a sessão de autenticação ao abrir o app. A autenticação do aplicativo e os dados esportivos ainda usam a demonstração local no navegador; o cliente Supabase não substitui uma migração de usuários e dados para tabelas protegidas por RLS.
 
 ## Verificação
 

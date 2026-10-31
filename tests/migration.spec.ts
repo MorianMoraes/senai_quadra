@@ -32,6 +32,7 @@ async function expectNoHorizontalOverflow(page: Page) {
 
 test('visitantes consultam a agenda e o histórico direciona para o login', async ({ page }) => {
   await page.goto('/');
+  await expect(page.getByRole('status')).toContainText('Supabase não configurado');
   await expect(page.getByRole('heading', { name: 'Próximos jogos' })).toBeVisible();
   await expect(page.locator('[data-route="history"]')).toHaveCount(0);
   await expect(page.getByText('Histórico de partidas')).toHaveCount(0);

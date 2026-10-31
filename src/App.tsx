@@ -18,6 +18,7 @@ import { ManagementPage } from './pages/ManagementPage';
 import { HowItWorksPage } from './pages/HowItWorksPage';
 import { GameList } from './components/GameCard';
 import { todayISO, startTime } from './utils/format';
+import { supabaseConfigurationError } from './lib/supabaseConfig';
 
 function SignedInApp({ toggleTheme }: { toggleTheme: () => void }) {
   const { user, logout } = useApp(), [route, setRoute] = useState<Route>('dashboard');
@@ -49,5 +50,5 @@ function PublicApp({ toggleTheme }: { toggleTheme: () => void }) {
 }
 export default function App() {
   const { user } = useApp(), { toggleTheme } = useTheme();
-  return <>{user ? <SignedInApp key={user.id} toggleTheme={toggleTheme} /> : <PublicApp toggleTheme={toggleTheme} />}<PwaInstallButton /><Toast /></>;
+  return <>{supabaseConfigurationError && <aside className="supabase-config-alert" role="status"><strong>Supabase não configurado.</strong> A demonstração local continua disponível; autenticação e dados remotos exigem as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY nos Secrets do GitHub Actions.</aside>}{user ? <SignedInApp key={user.id} toggleTheme={toggleTheme} /> : <PublicApp toggleTheme={toggleTheme} />}<PwaInstallButton /><Toast /></>;
 }
