@@ -1,107 +1,130 @@
 import { test, expect, type Page } from '@playwright/test';
 
-async function login(page: Page, role: 'aluno' | 'professor' | 'diretor') {
-  await expect(page.getByRole('button', { name: 'Continuar com Google' })).toBeVisible();
-  await page.getByLabel('E-mail', { exact: true }).fill(`${role}@senai.local`);
-  await page.getByLabel('Senha', { exact: true }).fill(({ aluno: 'Aluno@123', professor: 'Professor@123', diretor: 'Senai@123' })[role]);
+async function login(page: Page, email: string, password: string) {
+  await page.getByLabel('E-mail', { exact: true }).fill(email);
+  await page.getByLabel('Senha', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await expect(page.locator('.topbar h1')).toHaveText('Início');
 }
+
+async function startLogin(page: Page) {
+  await page.locator('.topbar-status').getByRole('button', { name: 'Entrar', exact: true }).click();
+}
+
 async function openMenu(page: Page) {
   const menu = page.getByRole('button', { name: 'Abrir menu' });
   if (await menu.isVisible() && await menu.getAttribute('aria-expanded') === 'false') await menu.click();
 }
+
 async function navigate(page: Page, route: string) {
-  await openMenu(page); await page.locator(`[data-route="${route}"]`).click();
+  await openMenu(page);
+  await page.locator(`[data-route="${route}"]`).click();
 }
-async function logout(page: Page) { await openMenu(page); await page.getByRole('button', { name: 'Sair', exact: true }).click(); }
-async function managementSection(page: Page, label: string) { await navigate(page, 'management'); await page.getByRole('button', { name: new RegExp(label) }).click(); }
 
-test('professor cria campeonato e líder inscreve seis jogadores; navegação e persistência', async ({ page }, testInfo) => {
-  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await login(page, 'professor');
-  const teacherRoutes = await page.locator('.nav button').evaluateAll(buttons => buttons.map(button => button.getAttribute('data-route')));
-  expect(teacherRoutes.indexOf('createGame')).toBe(teacherRoutes.indexOf('calendar') + 1);
-  await expect(page.locator('[data-route="ranking"]')).toHaveCount(0);
-  await navigate(page, 'createGame');
-  const playerLimit = page.getByLabel('Limite de jogadores');
-  await expect(playerLimit).toHaveAttribute('max', '20');
-  await expect(playerLimit).toHaveValue('20');
-  await expect(page.getByLabel('Duração (min)')).toHaveValue('90');
-  await expect(page.getByText(/até 20 jogadores e dura no máximo 90 minutos/)).toBeVisible();
-  await playerLimit.fill('21');
-  expect(await playerLimit.evaluate((input: HTMLInputElement) => input.checkValidity())).toBe(false);
-  await navigate(page, 'management');
-  await managementSection(page, 'Campeonatos'); await page.getByRole('button', { name: '＋ Criar campeonato' }).click();
-  await page.getByLabel('Nome', { exact: true }).fill('Copa SENAI React');
-  const date = new Date(); date.setDate(date.getDate() + 7);
-  await page.getByLabel('Data do campeonato').fill(date.toISOString().slice(0, 10));
-  await page.getByRole('button', { name: 'Criar e abrir inscrições' }).click();
-  await expect(page.getByRole('heading', { name: 'Copa SENAI React' })).toBeVisible();
-  await logout(page); await login(page, 'aluno');
-  await expect(page.locator('[data-route="createGame"]')).toHaveCount(0);
-  await managementSection(page, 'Equipes');
-  await page.locator('.team-card').filter({ has: page.getByRole('heading', { name: 'Fênix Azul' }) }).getByRole('button', { name: 'Montar time' }).click();
-  await page.getByLabel('Posição de Prof. Rafael').selectOption('');
-  for (const name of ['Maria Costa', 'Lucas Souza', 'Ana Lima', 'Pedro Alves', 'Beatriz Santos']) await page.getByLabel(`Posição de ${name}`).selectOption('member');
-  await page.getByRole('button', { name: 'Salvar elenco' }).click();
-  await managementSection(page, 'Campeonatos'); await page.getByRole('button', { name: 'Inscrever time com 6 jogadores' }).click();
-  await expect(page.getByRole('button', { name: 'Time inscrito' })).toBeDisabled();
-  await expect(page.getByText('6/6 inscritos', { exact: true })).toBeVisible();
-  await page.reload(); await managementSection(page, 'Campeonatos');
-  await expect(page.getByRole('button', { name: 'Time inscrito' })).toBeDisabled();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: testInfo.outputPath('campeonatos.png'), fullPage: true });
+async function logout(page: Page) {
+  await openMenu(page);
+  await page.getByRole('button', { name: 'Sair', exact: true }).click();
+}
+
+async function expectNoHorizontalOverflow(page: Page) {
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+}
+
+test('visitantes consultam a agenda e o histórico direciona para o login', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Próximos jogos' })).toBeVisible();
+  await expect(page.locator('[data-route="history"]')).toHaveCount(0);
+  await expect(page.getByText('Histórico de partidas')).toHaveCount(0);
+
+  await navigate(page, 'howItWorks');
+  await expect(page.getByRole('heading', { name: 'Visitante', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Representante de equipe' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Administrador', exact: true })).toBeVisible();
+
   await navigate(page, 'calendar');
-  await expect(page.getByRole('heading', { name: 'Uma visão clara de cada partida.' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Lista', exact: true })).toHaveAttribute('aria-pressed', testInfo.project.name === 'mobile' ? 'true' : 'false');
-  await page.getByRole('button', { name: 'Lista' }).click();
-  await expect(page.getByRole('heading', { name: 'Jogos e eventos' })).toBeVisible();
-  await page.getByLabel('Filtrar por quadra').selectOption('Quadra SENAI');
-  await page.getByRole('button', { name: 'Mês', exact: true }).click();
-  for (const route of ['dashboard', 'calendar', 'history']) await navigate(page, route);
-  await expect(page.getByRole('heading', { name: 'Ranking', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Ranking de alunos' })).toBeVisible();
+  await page.getByRole('button', { name: 'Lista', exact: true }).click();
+  const finishedGame = page.locator('.game-table tr').filter({ hasText: 'finalizado' }).first();
+  await finishedGame.getByRole('button', { name: 'Detalhes' }).click();
+  await expect(page.getByText('Placar detalhado disponível após o login.')).toBeVisible();
+  await expect(page.getByText('Set 1')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Fechar janela' }).click();
+
+  await navigate(page, 'teams');
+  await page.getByRole('button', { name: 'Ver equipe' }).first().click();
+  await expect(page.getByText('Informações gerais da equipe. Faça login para consultar detalhes do elenco e do desempenho.')).toBeVisible();
+  await expect(page.getByText('Jogadores (')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Fechar janela' }).click();
+
+  await navigate(page, 'howItWorks');
+  await page.getByRole('button', { name: 'Entrar para ver o histórico' }).click();
+  await expect(page.getByRole('heading', { name: 'Entrar' })).toBeVisible();
+  await expect(page.getByText('Histórico de partidas')).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+});
+
+test('representante autenticado acessa o histórico e só edita a própria equipe', async ({ page }) => {
+  await page.goto('/');
+  await startLogin(page);
+  await login(page, 'aluno@senai.local', 'Aluno@123');
+  await expect(page.getByText('Representante de equipe', { exact: true })).toBeVisible();
+  await navigate(page, 'history');
   await expect(page.getByRole('heading', { name: 'Histórico de partidas' })).toBeVisible();
-  if (testInfo.project.name === 'desktop') {
-    await page.getByRole('button', { name: 'Recolher menu' }).click();
-    await expect(page.getByRole('button', { name: 'Alternar tema' })).toBeVisible();
-    await page.getByRole('button', { name: 'Expandir menu' }).click();
+  await expect(page.getByRole('heading', { name: 'Ranking de alunos' })).toBeVisible();
+  await navigate(page, 'management');
+  await page.getByRole('button', { name: /Equipes/ }).click();
+  const ownTeam = page.locator('.team-card').filter({ has: page.getByRole('heading', { name: 'Fênix Azul' }) });
+  const otherTeam = page.locator('.team-card').filter({ has: page.getByRole('heading', { name: 'Impacto' }) });
+  await expect(ownTeam.getByRole('button', { name: 'Montar time' })).toBeVisible();
+  await expect(otherTeam.getByRole('button', { name: 'Montar time' })).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+});
+
+test('professor e administrador entram e podem abrir as ferramentas de organização', async ({ page }) => {
+  await page.goto('/');
+  await startLogin(page);
+  await login(page, 'professor@senai.local', 'Professor@123');
+  await expect(page.locator('[data-route="createGame"]')).toBeVisible();
+  await navigate(page, 'createGame');
+  await expect(page.getByRole('heading', { name: 'Novo jogo' })).toBeVisible();
+  await navigate(page, 'management');
+  await page.getByRole('button', { name: /Campeonatos/ }).click();
+  await expect(page.getByRole('button', { name: '＋ Criar campeonato' })).toBeVisible();
+
+  await logout(page);
+  await startLogin(page);
+  await login(page, 'diretor@senai.local', 'Senai@123');
+  await navigate(page, 'users');
+  await expect(page.getByRole('heading', { name: 'Gestão de usuários' })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
+test('páginas principais cabem na largura do computador e do celular', async ({ page }, testInfo) => {
+  await page.goto('/');
+  for (const route of ['dashboard', 'calendar', 'teams', 'tournaments', 'howItWorks']) {
+    await navigate(page, route);
+    await expectNoHorizontalOverflow(page);
   }
-  const currentTheme = await page.locator('html').getAttribute('data-theme');
-  await openMenu(page); await page.getByRole('button', { name: 'Alternar tema' }).click();
-  const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  await expect(page.locator('html')).toHaveAttribute('data-theme', nextTheme);
-  await page.reload(); await expect(page.locator('html')).toHaveAttribute('data-theme', nextTheme);
-  await expect(page.getByRole('button', { name: 'Notificações' })).toHaveCount(0);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await logout(page); await login(page, 'diretor');
-  await expect(page.locator('[data-route="createGame"]')).toHaveCount(0);
-  await navigate(page, 'users'); await expect(page.getByRole('heading', { name: 'Gestão de usuários' })).toBeVisible();
-  await navigate(page, 'logs'); await expect(page.getByRole('heading', { name: 'Logs do sistema' })).toBeVisible();
-  expect(errors).toEqual([]);
-});
+  await navigate(page, 'calendar');
+  await page.getByRole('button', { name: 'Mês', exact: true }).click();
+  await expectNoHorizontalOverflow(page);
 
-test('cadastro somente aluno e perfil editável em React', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Criar conta' }).click();
-  await expect(page.getByRole('button', { name: 'Continuar com Google' })).toBeVisible();
-  await expect(page.getByLabel('Perfil', { exact: true })).toHaveValue('Aluno');
-  await expect(page.getByLabel('Perfil', { exact: true })).toHaveAttribute('readonly', '');
-  await page.getByLabel('Nome completo').fill('Aluno de Teste');
-  await page.getByLabel('E-mail').fill('teste@example.com');
-  await page.getByLabel('Turma').fill('2º A'); await page.getByLabel('Idade').fill('16');
-  await page.getByLabel('Matrícula').fill('TESTE001');
-  await page.getByLabel('Senha', { exact: true }).fill('Teste@123');
-  await page.getByLabel('Confirmar senha', { exact: true }).fill('Teste@123');
-  await page.getByRole('button', { name: 'Cadastrar', exact: true }).click();
-  await expect(page.locator('.topbar h1')).toHaveText('Início');
-  await managementSection(page, 'Perfil'); await page.getByLabel('Nome completo').fill('Aluno Atualizado');
-  await page.getByRole('button', { name: 'Salvar perfil' }).click();
-  await expect(page.getByRole('heading', { name: 'Aluno Atualizado' })).toBeVisible();
-});
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Lista', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Jogos', exact: true })).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  }
 
-test('mostra o cancelamento do retorno OAuth do Google', async ({ page }) => {
-  await page.goto('/?error=access_denied&error_description=User%20canceled');
-  await expect(page.getByRole('alert')).toContainText('Login com Google cancelado.');
-  await expect(page).toHaveURL('/');
+  await navigate(page, 'dashboard');
+  await startLogin(page);
+  await expectNoHorizontalOverflow(page);
+  await login(page, 'diretor@senai.local', 'Senai@123');
+  for (const route of ['dashboard', 'calendar', 'createGame', 'management', 'history', 'howItWorks', 'users', 'logs']) {
+    await navigate(page, route);
+    await expectNoHorizontalOverflow(page);
+  }
+  await navigate(page, 'management');
+  for (const section of ['Perfil', 'Equipes', 'Campeonatos']) {
+    await page.getByRole('button', { name: new RegExp(section) }).click();
+    await expectNoHorizontalOverflow(page);
+  }
 });

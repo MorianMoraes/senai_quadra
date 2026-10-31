@@ -1,12 +1,12 @@
 import type { DemoState, Game, MatchSet } from '../types/models';
-import { audit, requireActor, requireDirector } from './auth';
+import { audit, requireActor, requireTeacher } from './auth';
 import { startTime, uid } from '../utils/format';
 
 export type NewGame = Pick<Game, 'date' | 'time' | 'team1' | 'team2' | 'description' | 'notes' | 'limit' | 'status'>;
 export const MAX_GAME_PLAYERS = 20;
 export const GAME_DURATION_MINUTES = 90;
 export function createGame(state: DemoState, actorId: string, input: NewGame): void {
-  requireDirector(state, actorId);
+  requireTeacher(state, actorId);
   const start = startTime(input.date, input.time), end = start + GAME_DURATION_MINUTES * 60_000;
   if (!Number.isFinite(start) || start < Date.now() + 24 * 60 * 60_000) throw new Error('Crie o jogo com pelo menos 1 dia de antecedência.');
   if (!Number.isInteger(input.limit) || input.limit < 1) throw new Error('Informe um limite de jogadores válido.');
@@ -29,7 +29,7 @@ export function leaveGame(state: DemoState, actorId: string, gameId: string): vo
   game.participantIds = game.participantIds.filter(id => id !== actorId);
 }
 export function cancelGame(state: DemoState, actorId: string, gameId: string): void {
-  requireDirector(state, actorId); const game = state.games.find(item => item.id === gameId);
+  requireTeacher(state, actorId); const game = state.games.find(item => item.id === gameId);
   if (!game) throw new Error('Jogo não encontrado.');
   game.status = 'cancelado'; audit(state, actorId, `cancelou o jogo de ${game.date} às ${game.time}`);
 }
@@ -45,7 +45,7 @@ function updateTotals(state: DemoState, game: Game, multiplier: number): void {
   b.pointsFor += multiplier * pointsB; b.pointsAgainst += multiplier * pointsA;
 }
 export function saveScore(state: DemoState, actorId: string, gameId: string, sets: MatchSet[]): void {
-  requireDirector(state, actorId); const game = state.games.find(item => item.id === gameId);
+  requireTeacher(state, actorId); const game = state.games.find(item => item.id === gameId);
   if (!game || game.status === 'cancelado') throw new Error('Jogo indisponível.');
   if (!sets.length || sets.length > 3) throw new Error('Informe de 1 a 3 sets.');
   if (sets.some(set => !Number.isInteger(set.a) || !Number.isInteger(set.b) || set.a < 0 || set.b < 0)) throw new Error('Informe pontuações inteiras e positivas.');

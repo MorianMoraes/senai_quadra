@@ -1,11 +1,11 @@
 ﻿## Modelo de acesso nesta etapa
 
-A interface abre em modo público para consulta do calendário, equipes, campeonatos e resultados. O botão **Entrar** aceita apenas perfis administradores ou usuários vinculados como criadores de equipes; o cadastro e o login Google foram removidos da tela. Ações administrativas são limitadas ao perfil administrador nas regras do aplicativo.
+A interface abre em modo público para consulta do calendário, próximos jogos, equipes e informações gerais dos campeonatos. O histórico detalhado e os rankings aparecem somente após o login. O botão **Entrar** aceita administradores ou contas autorizadas vinculadas como representantes de equipe; não há cadastro público.
 
-**Limite de segurança:** este repositório ainda é uma demonstração local. `src/demo/storage.ts` persiste o estado e a sessão em `localStorage`, `src/demo/seed.ts` inclui usuários e credenciais de exemplo e não existem tabelas, API de escrita ou políticas RLS. Portanto, a tela não fornece autenticação segura, hash de senhas nem autorização no backend. Não publique como sistema com dados reais até migrar usuários e dados esportivos para um backend, provisionar contas pelo administrador e aplicar políticas de acesso no banco.
-# SENAI Sports — React + TypeScript + Vite
+**Limite de segurança:** este repositório ainda é uma demonstração local. `src/demo/storage.ts` persiste o estado e a sessão em `localStorage`, `src/demo/seed.ts` inclui usuários e credenciais fictícias de exemplo e não existem tabelas, API de escrita ou políticas RLS conectadas. A restrição do histórico nesta versão é feita na interface e não protege dados no servidor. A criação segura de contas de representantes também depende de um backend. Não use credenciais ou dados reais até migrar usuários e dados esportivos, configurar autenticação e aplicar políticas de acesso no banco.
+# SENAI Quadra — React + TypeScript + Vite
 
-**Acesso público e privado:** a interface React mantém o calendário e as páginas esportivas existentes, com consulta pública e ações restritas a contas autorizadas no aplicativo.
+**Acesso público e privado:** calendário, próximos jogos e informações gerais permanecem públicos; o histórico detalhado exige login. Ações de equipe e administração aparecem conforme o perfil autorizado no aplicativo.
 
 O projeto ainda não possui backend de dados nem políticas RLS. Consulte “Modelo de acesso nesta etapa” antes de usar fora de uma demonstração local.
 

@@ -20,7 +20,7 @@ export function CalendarPage({ navigate }: { navigate: (route: Route) => void })
   const monthLabel = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(month);
 
   return <>
-    <div className="calendar-page-heading"><div><p className="eyebrow">AGENDA ESPORTIVA</p><h2>Uma visão clara de cada partida.</h2><p className="muted">Acompanhe horários, inscrições e campeonatos em um só lugar.</p></div>{user?.role === 'director' && <Button onClick={() => navigate('createGame')}>＋ Criar jogo</Button>}</div>
+    <div className="calendar-page-heading"><div><p className="eyebrow">AGENDA ESPORTIVA</p><h2>Uma visão clara de cada partida.</h2><p className="muted">Acompanhe horários, inscrições e campeonatos em um só lugar.</p></div>{(user?.role === 'teacher' || user?.role === 'director') && <Button onClick={() => navigate('createGame')}>＋ Criar jogo</Button>}</div>
     <Card className="calendar-card">
       <div className="calendar-toolbar">
         <div className="calendar-nav"><Button variant="secondary" aria-label="Mês anterior" onClick={() => setMonth(new Date(year, index - 1, 1))}>←</Button><div className="calendar-title">{monthLabel}</div><Button variant="secondary" aria-label="Próximo mês" onClick={() => setMonth(new Date(year, index + 1, 1))}>→</Button></div>

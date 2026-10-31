@@ -56,9 +56,14 @@ export function registerGoogleStudent(state: DemoState, identity: GoogleIdentity
 export function authenticate(state: DemoState, email: string, password: string): User {
   const user = state.users.find(item => item.email.toLowerCase() === email.trim().toLowerCase() && item.password === password);
   if (!user) throw new Error('E-mail ou senha inválidos.');
-  if (user.role !== 'director' && !state.teams.some(team => team.creatorId === user.id)) throw new Error('Esta conta não está vinculada à liderança de um time.');
+  if (user.role === 'student' && !state.teams.some(team => team.creatorId === user.id)) throw new Error('Esta conta não está vinculada a uma equipe como representante.');
   return user;
 }
+
+export function canViewHistory(user: User | null): user is User {
+  return user !== null && !user.suspended;
+}
+
 export function registerStudent(state: DemoState, input: Registration): User {
   const name = requireName(input.name), email = input.email.trim().toLowerCase(), matricula = input.matricula?.trim();
   if (!email || !email.includes('@')) throw new Error('Informe um e-mail válido.');
@@ -80,7 +85,7 @@ export function requireActor(state: DemoState, actorId: string): User {
 }
 export function requireTeacher(state: DemoState, actorId: string): User {
   const user = requireActor(state, actorId);
-  if (user.role !== 'teacher') throw new Error('Somente professores podem realizar esta ação.');
+  if (user.role !== 'teacher' && user.role !== 'director') throw new Error('Somente professores e administradores podem realizar esta ação.');
   return user;
 }
 export function requireDirector(state: DemoState, actorId: string): User {

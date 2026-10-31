@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { seed } from '../demo/seed';
 import { DEMO_KEY, loadDemo } from '../demo/storage';
 import { createTournament, registerTeam } from './tournaments';
-import { registerGoogleStudent, registerStudent } from './auth';
+import { canViewHistory, registerGoogleStudent, registerStudent } from './auth';
 import { createGame, joinGame, saveScore } from './games';
 import { saveRoster } from './teams';
 import { addDays } from '../utils/format';
@@ -26,11 +26,11 @@ describe('Migração da demonstração', () => {
     expect(registerStudent(state, input).role).toBe('student');
     expect(() => registerStudent(state, { ...input, email: 'outro@example.com' })).toThrow('matrícula');
   });
-  it('somente professor cria campeonato e nenhum time é inscrito automaticamente', () => {
+  it('professor e administrador podem organizar campeonatos; alunos não recebem esse acesso', () => {
     const state = structuredClone(seed);
     expect(() => createTournament(state, 'u4', 'Copa', addDays(2))).toThrow('professores');
-    expect(() => createTournament(state, 'u1', 'Copa', addDays(2))).toThrow('professores');
     createTournament(state, 'u2', 'Copa', addDays(2));
+    createTournament(state, 'u1', 'Copa administrativa', addDays(3));
     expect(state.tournaments[0]?.teamIds).toEqual([]);
   });
   it('exige líder, seis titulares, contas ativas e responsável; mantém snapshot', () => {
@@ -74,10 +74,16 @@ describe('Migração da demonstração', () => {
   });
   it('valida acesso e conflito da quadra na criação de jogos', () => {
     const state = structuredClone(seed), input = { date: addDays(8), time: '14:00', team1: 't1', team2: 't2', description: '', notes: '', limit: 18, status: 'inscricoes' as const };
-    expect(() => createGame(state, 'u1', input)).toThrow('professores');
+    expect(() => createGame(state, 'u4', input)).toThrow('professores');
     createGame(state, 'u2', input);
+    createGame(state, 'u1', { ...input, date: addDays(9) });
     expect(() => createGame(state, 'u2', { ...input, time: '15:00' })).toThrow('quadra');
     expect(() => createGame(state, 'u2', { ...input, time: '15:30' })).not.toThrow();
+  });
+  it('restringe o histórico a sessões autenticadas e ativas', () => {
+    expect(canViewHistory(null)).toBe(false);
+    expect(canViewHistory(seed.users.find(user => user.id === 'u4')!)).toBe(true);
+    expect(canViewHistory({ ...seed.users[0]!, suspended: true })).toBe(false);
   });
   it('limita partidas a 20 jogadores e define duração de 90 minutos', () => {
     const state = structuredClone(seed), input = { date: addDays(10), time: '14:00', team1: 't1', team2: 't2', description: '', notes: '', limit: 20, status: 'inscricoes' as const };

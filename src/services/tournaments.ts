@@ -1,5 +1,5 @@
 import type { DemoState, Team, Tournament } from '../types/models';
-import { audit, requireActor, requireDirector } from './auth';
+import { audit, requireActor, requireTeacher } from './auth';
 import { requireName } from '../utils/validation';
 import { todayISO, uid } from '../utils/format';
 
@@ -17,7 +17,7 @@ export function registrationError(state: DemoState, actorId: string, tournament:
   return '';
 }
 export function createTournament(state: DemoState, actorId: string, name: string, date: string): void {
-  requireDirector(state, actorId);
+  requireTeacher(state, actorId);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date)) || date < todayISO()) throw new Error('Informe uma data a partir de hoje.');
   const tournament: Tournament = { id: uid('tr'), name: requireName(name), date, createdBy: actorId, teamIds: [], registrations: [], status: 'inscricoes', rounds: [] };
   state.tournaments.push(tournament); audit(state, actorId, `criou o campeonato ${tournament.name}`);
