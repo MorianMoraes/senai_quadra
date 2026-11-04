@@ -84,7 +84,8 @@ revoke insert, update, delete on public.profiles from anon, authenticated;
 -- The public directory intentionally omits email, matrícula and age.
 drop view if exists public.public_profiles;
 create view public.public_profiles with (security_invoker = false) as
-select id, role, nome as name, avatar_url as photo from public.profiles where not suspended;
+select id, role, nome as name, avatar_url as photo, null::text as turma, false as suspended
+from public.profiles where not suspended;
 revoke all on public.public_profiles from public;
 grant select on public.public_profiles to anon, authenticated;
 

@@ -1,8 +1,7 @@
--- Keep the public directory limited to names needed to display public participants.
--- Email, class, enrollment number, age and suspended accounts remain private.
+-- Keep public participant fields compatible while omitting private profile details.
 drop view if exists public.public_profiles;
 create view public.public_profiles with (security_invoker = false) as
-select id, role, nome as name, avatar_url as photo
+select id, role, nome as name, avatar_url as photo, null::text as turma, false as suspended
 from public.profiles
 where not suspended;
 revoke all on public.public_profiles from public;
