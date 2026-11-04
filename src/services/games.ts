@@ -1,8 +1,8 @@
-import type { DemoState, Game, MatchSet } from '../types/models';
+import type { DemoState, Game, MatchSet, Sport } from '../types/models';
 import { audit, requireActor, requireTeacher } from './auth';
 import { startTime, uid } from '../utils/format';
 
-export type NewGame = Pick<Game, 'date' | 'time' | 'team1' | 'team2' | 'description' | 'notes' | 'limit' | 'status'>;
+export type NewGame = Pick<Game, 'date' | 'time' | 'team1' | 'team2' | 'description' | 'notes' | 'limit' | 'status'> & { sport?: Sport };
 export const MAX_GAME_PLAYERS = 20;
 export const GAME_DURATION_MINUTES = 90;
 export function createGame(state: DemoState, actorId: string, input: NewGame): void {
@@ -13,7 +13,7 @@ export function createGame(state: DemoState, actorId: string, input: NewGame): v
   if (input.limit > MAX_GAME_PLAYERS) throw new Error(`Cada partida aceita no máximo ${MAX_GAME_PLAYERS} jogadores.`);
   if (input.team1 && input.team1 === input.team2) throw new Error('Escolha equipes diferentes.');
   if (state.games.some(game => game.status !== 'cancelado' && start < startTime(game.date, game.time) + game.duration * 60_000 && end > startTime(game.date, game.time))) throw new Error('Já existe um jogo ocupando a quadra nesse horário.');
-  state.games.push({ ...input, id: uid('g'), duration: GAME_DURATION_MINUTES, court: 'Quadra SENAI', participantIds: [], sets: [], createdBy: actorId });
+  state.games.push({ ...input, sport: input.sport ?? 'volei', id: uid('g'), duration: GAME_DURATION_MINUTES, court: 'Quadra SENAI', participantIds: [], sets: [], createdBy: actorId });
   audit(state, actorId, `criou um jogo em ${input.date} às ${input.time}`);
 }
 export function joinGame(state: DemoState, actorId: string, gameId: string): void {

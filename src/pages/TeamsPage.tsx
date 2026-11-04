@@ -6,14 +6,15 @@ import { TeamCard } from '../components/TeamCard';
 import { approveTeam, createTeam, deleteTeam, saveRoster, teamPlayers } from '../services/teams';
 import { userName } from '../utils/format';
 import { field } from '../utils/validation';
+import { SportChoiceGroup, SportLabel } from '../components/SportIcon';
 
 function NewTeamModal({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
   const { state, act } = useApp();
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const data = new FormData(event.currentTarget); let id = '';
-    if (act((draft, actor) => { id = createTeam(draft, actor, field(data, 'name'), field(data, 'teacher')).id; }, 'Equipe criada. Monte o elenco e aguarde a aprovação do professor.')) onCreated(id);
+    if (act((draft, actor) => { id = createTeam(draft, actor, field(data, 'name'), field(data, 'teacher'), field(data, 'sport') as Team['sport']).id; }, 'Equipe criada. Monte o elenco e aguarde a aprovação do professor.')) onCreated(id);
   }
-  return <Modal title="Criar equipe" onClose={onClose}><form onSubmit={submit}><Field label="Nome da equipe" name="name" required maxLength={100} /><SelectField label="Professor responsável" name="teacher" required><option value="">Selecione</option>{state.users.filter(user => user.role === 'teacher' && !user.suspended).map(user => <option key={user.id} value={user.id}>{user.name}</option>)}</SelectField><div className="modal-footer"><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button type="submit">Criar equipe</Button></div></form></Modal>;
+  return <Modal title="Criar equipe" onClose={onClose}><form onSubmit={submit}><Field label="Nome da equipe" name="name" required maxLength={100} /><SportChoiceGroup name="sport" /><SelectField label="Professor responsável" name="teacher" required><option value="">Selecione</option>{state.users.filter(user => user.role === 'teacher' && !user.suspended).map(user => <option key={user.id} value={user.id}>{user.name}</option>)}</SelectField><div className="modal-footer"><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button type="submit">Criar equipe</Button></div></form></Modal>;
 }
 function RosterModal({ team, onClose }: { team: Team; onClose: () => void }) {
   const { state, act } = useApp(), [members, setMembers] = useState(team.memberIds), [reserves, setReserves] = useState(team.reserveIds);
@@ -26,7 +27,7 @@ function RosterModal({ team, onClose }: { team: Team; onClose: () => void }) {
 }
 function TeamDetails({ team, onClose }: { team: Team; onClose: () => void }) {
   const { state, user } = useApp();
-  return <Modal title={team.name} onClose={onClose}><Status color={team.status === 'ativa' ? 'green' : 'yellow'}>{team.status}</Status>{user ? <><p><strong>Professor(es):</strong> {team.teacherIds.map(id => userName(state, id)).join(', ')}</p><p><strong>Representante:</strong> {userName(state, team.creatorId)}</p><p><strong>Jogadores ({teamPlayers(state, team).length}/6):</strong> {team.memberIds.map(id => userName(state, id)).join(', ')}</p><p><strong>Reservas:</strong> {team.reserveIds.map(id => userName(state, id)).join(', ') || 'Nenhum'}</p><div className="cards compact-metrics"><Metric label="Vitórias" value={team.wins} /><Metric label="Derrotas" value={team.losses} /><Metric label="Pontos" value={team.pointsFor} /></div></> : <p className="muted">Informações gerais da equipe. Faça login para consultar detalhes do elenco e do desempenho.</p>}</Modal>;
+  return <Modal title={team.name} onClose={onClose}><SportLabel sport={team.sport} /><Status color={team.status === 'ativa' ? 'green' : 'yellow'}>{team.status}</Status>{user ? <><p><strong>Professor(es):</strong> {team.teacherIds.map(id => userName(state, id)).join(', ')}</p><p><strong>Representante:</strong> {userName(state, team.creatorId)}</p><p><strong>Jogadores ({teamPlayers(state, team).length}/6):</strong> {team.memberIds.map(id => userName(state, id)).join(', ')}</p><p><strong>Reservas:</strong> {team.reserveIds.map(id => userName(state, id)).join(', ') || 'Nenhum'}</p><div className="cards compact-metrics"><Metric label="Vitórias" value={team.wins} /><Metric label="Derrotas" value={team.losses} /><Metric label="Pontos" value={team.pointsFor} /></div></> : <p className="muted">Informações gerais da equipe. Faça login para consultar detalhes do elenco e do desempenho.</p>}</Modal>;
 }
 export function TeamsPage() {
   const { state, user, act } = useApp(), [search, setSearch] = useState(''), [dialog, setDialog] = useState<{ kind: 'new' | 'detail' | 'roster'; id?: string } | null>(null);

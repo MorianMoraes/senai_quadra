@@ -7,14 +7,15 @@ export const userSchema = z.object({
   password: z.string(), turma: z.string(), idade: z.number(), matricula: z.string(),
   photo: z.string().default(''), suspended: z.boolean().default(false),
 });
+export const sportSchema = z.enum(['futebol', 'volei', 'futsal', 'handebol', 'queimada', 'basquete', 'xadrez', 'dama', 'ludo', 'pingue-pongue']);
 export const teamSchema = z.object({
-  id: z.string(), name: z.string(), status: z.string(), creatorId: z.string(),
+  id: z.string(), name: z.string(), sport: sportSchema.default('volei'), status: z.string(), creatorId: z.string(),
   teacherIds: z.array(z.string()), memberIds: z.array(z.string()), reserveIds: z.array(z.string()),
   wins: z.number(), losses: z.number(), pointsFor: z.number(), pointsAgainst: z.number(),
 });
 export const setSchema = z.object({ a: z.number(), b: z.number() });
 export const gameSchema = z.object({
-  id: z.string(), date: z.string(), time: z.string(), duration: z.number(), court: z.string(),
+  id: z.string(), sport: sportSchema.default('volei'), date: z.string(), time: z.string(), duration: z.number(), court: z.string(),
   team1: z.string(), team2: z.string(), limit: z.number(), description: z.string(), notes: z.string(),
   status: z.enum(['inscricoes', 'agendado', 'finalizado', 'cancelado']),
   participantIds: z.array(z.string()), sets: z.array(setSchema), createdBy: z.string(),
@@ -42,6 +43,7 @@ export type User = z.infer<typeof userSchema>;
 export type Team = z.infer<typeof teamSchema>;
 export type Game = z.infer<typeof gameSchema>;
 export type MatchSet = z.infer<typeof setSchema>;
+export type Sport = z.infer<typeof sportSchema>;
 export type Tournament = z.infer<typeof tournamentSchema>;
 export type DemoState = z.infer<typeof stateSchema>;
 export type Route = 'dashboard' | 'calendar' | 'createGame' | 'management' | 'teams' | 'tournaments' | 'history' | 'howItWorks' | 'profile' | 'users' | 'logs';
