@@ -3,7 +3,7 @@ create or replace function public.player_create_team(team_id text, team_name tex
 returns void language plpgsql security definer set search_path = '' as $$
 declare current_payload jsonb;
 begin
-  if (select private.current_app_role()) <> 'student' then
+  if (select private.current_app_role()) is distinct from 'student' then
     raise exception 'Esta operação está disponível para jogadores ativos.' using errcode = '42501';
   end if;
   if nullif(trim(team_id), '') is null or char_length(trim(team_name)) not between 2 and 100 then
@@ -35,7 +35,7 @@ create or replace function public.player_join_team(target_team_id text)
 returns void language plpgsql security definer set search_path = '' as $$
 declare current_payload jsonb; target_team jsonb;
 begin
-  if (select private.current_app_role()) <> 'student' then
+  if (select private.current_app_role()) is distinct from 'student' then
     raise exception 'Esta operação está disponível para jogadores ativos.' using errcode = '42501';
   end if;
   select payload into current_payload from public.sports_state where id = 1 for update;
@@ -67,7 +67,7 @@ create or replace function public.player_set_team_roster(target_team_id text, re
 returns void language plpgsql security definer set search_path = '' as $$
 declare current_payload jsonb; target_team jsonb;
 begin
-  if (select private.current_app_role()) <> 'student' then
+  if (select private.current_app_role()) is distinct from 'student' then
     raise exception 'Esta operação está disponível para jogadores ativos.' using errcode = '42501';
   end if;
   if jsonb_typeof(requested_members) <> 'array' or jsonb_typeof(requested_reserves) <> 'array'
@@ -120,7 +120,7 @@ create or replace function public.player_join_game(target_game_id text)
 returns void language plpgsql security definer set search_path = '' as $$
 declare current_payload jsonb; target_game jsonb; start_at timestamp;
 begin
-  if (select private.current_app_role()) <> 'student' then
+  if (select private.current_app_role()) is distinct from 'student' then
     raise exception 'Esta operação está disponível para jogadores ativos.' using errcode = '42501';
   end if;
   select payload into current_payload from public.sports_state where id = 1 for update;
@@ -148,7 +148,7 @@ create or replace function public.player_leave_game(target_game_id text)
 returns void language plpgsql security definer set search_path = '' as $$
 declare current_payload jsonb; target_game jsonb; start_at timestamp;
 begin
-  if (select private.current_app_role()) <> 'student' then
+  if (select private.current_app_role()) is distinct from 'student' then
     raise exception 'Esta operação está disponível para jogadores ativos.' using errcode = '42501';
   end if;
   select payload into current_payload from public.sports_state where id = 1 for update;

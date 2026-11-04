@@ -82,8 +82,9 @@ with check ((select private.current_app_role()) = 'director');
 revoke insert, update, delete on public.profiles from anon, authenticated;
 
 -- The public directory intentionally omits email, matrícula and age.
-create or replace view public.public_profiles with (security_invoker = false) as
-select id, role, nome as name, turma, avatar_url as photo, suspended from public.profiles;
+drop view if exists public.public_profiles;
+create view public.public_profiles with (security_invoker = false) as
+select id, role, nome as name, avatar_url as photo from public.profiles where not suspended;
 revoke all on public.public_profiles from public;
 grant select on public.public_profiles to anon, authenticated;
 
@@ -109,7 +110,7 @@ revoke update, delete on public.activity_logs from anon, authenticated;
 create or replace function public.save_sports_state(next_payload jsonb)
 returns void language plpgsql security invoker set search_path = '' as $$
 begin
-  if (select private.current_app_role()) not in ('director','teacher') then
+  if coalesce((select private.current_app_role()), 'unauthorized') not in ('director','teacher') then
     raise exception 'Somente professores e administradores podem gravar dados esportivos pelo sistema.' using errcode = '42501';
   end if;
   if jsonb_typeof(next_payload) <> 'object'
@@ -132,7 +133,7 @@ create or replace function public.import_legacy_sports_state(next_payload jsonb)
 returns void language plpgsql security definer set search_path = '' as $$
 declare legacy_log jsonb;
 begin
-  if (select private.current_app_role()) <> 'director' then
+  if (select private.current_app_role()) is distinct from 'director' then
     raise exception 'Somente administradores podem importar dados locais.' using errcode = '42501';
   end if;
   if jsonb_typeof(next_payload) <> 'object'
@@ -175,7 +176,7 @@ grant execute on function public.update_own_profile(text,text,text) to authentic
 create or replace function public.set_profile_suspension(target_id uuid, next_suspended boolean)
 returns void language plpgsql security definer set search_path = '' as $$
 begin
-  if (select private.current_app_role()) <> 'director' then
+  if (select private.current_app_role()) is distinct from 'director' then
     raise exception 'Somente administradores podem suspender contas.' using errcode = '42501';
   end if;
   update public.profiles set suspended = next_suspended, updated_at = now()
