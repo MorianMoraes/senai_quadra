@@ -1,4 +1,4 @@
-﻿-- Ensure role checks fail closed for anonymous, missing and suspended profiles.
+-- Ensure role checks fail closed for anonymous, missing and suspended profiles.
 -- Existing SECURITY DEFINER routines compare the result of current_app_role().
 create or replace function private.current_app_role()
 returns text language sql stable security definer set search_path = '' as $$

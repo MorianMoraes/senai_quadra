@@ -1,4 +1,4 @@
-﻿-- Keep the public directory limited to names needed to display public participants.
+-- Keep the public directory limited to names needed to display public participants.
 -- Email, class, enrollment number, age and suspended accounts remain private.
 drop view if exists public.public_profiles;
 create view public.public_profiles with (security_invoker = false) as
