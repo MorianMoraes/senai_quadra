@@ -8,7 +8,6 @@ import '@fontsource/barlow-condensed/900.css';
 import './styles/app.css';
 import App from './App';
 import { AppProvider } from './contexts/AppContext';
-import { supabaseConfigurationError } from './lib/supabaseConfig';
 
 const root = document.getElementById('app');
 if (!root) throw new Error('Elemento de montagem não encontrado.');
@@ -19,8 +18,3 @@ createRoot(root).render(
     </AppProvider>
   </StrictMode>
 );
-if (!supabaseConfigurationError) {
-  void import('./lib/supabaseClient')
-    .then(({ testarConexaoSupabase }) => testarConexaoSupabase())
-    .catch((error: unknown) => console.error('Could not initialize Supabase:', error));
-}

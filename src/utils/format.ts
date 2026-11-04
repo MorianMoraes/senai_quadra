@@ -11,7 +11,7 @@ export const fmtDate = (date: string): string => new Intl.DateTimeFormat('pt-BR'
 export const startTime = (date: string, time: string): number => new Date(`${date}T${time}:00`).getTime();
 export const userName = (state: DemoState, id: string): string => state.users.find(user => user.id === id)?.name ?? 'Usuário';
 export const teamName = (state: DemoState, id: string): string => state.teams.find(team => team.id === id)?.name ?? 'Equipe aberta';
-export const roleLabel = (role: UserRole): string => ({ student: 'Representante de equipe', teacher: 'Professor', director: 'Administrador' })[role];
+export const roleLabel = (role: UserRole): string => ({ student: 'Jogador', teacher: 'Representante', director: 'Administrador' })[role];
 export function safePhoto(value: string): string {
   try { const url = new URL(value); return ['https:', 'http:'].includes(url.protocol) ? url.href : ''; } catch { return ''; }
 }

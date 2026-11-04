@@ -1,19 +1,25 @@
 import type { DemoState, Game, MatchSet, Sport } from '../types/models';
 import { audit, requireActor, requireTeacher } from './auth';
 import { startTime, uid } from '../utils/format';
+import { sportCategory } from '../utils/sports';
 
-export type NewGame = Pick<Game, 'date' | 'time' | 'team1' | 'team2' | 'description' | 'notes' | 'limit' | 'status'> & { sport?: Sport };
+export type NewGame = Pick<Game, 'date' | 'time' | 'team1' | 'team2' | 'description' | 'notes' | 'limit' | 'status'> & { sport?: Sport; unit?: string; court?: string; duration?: number };
 export const MAX_GAME_PLAYERS = 20;
-export const GAME_DURATION_MINUTES = 90;
+export const GAME_DURATION_MINUTES = 60;
 export function createGame(state: DemoState, actorId: string, input: NewGame): void {
   requireTeacher(state, actorId);
-  const start = startTime(input.date, input.time), end = start + GAME_DURATION_MINUTES * 60_000;
+  const sport = input.sport ?? 'volei', category = sportCategory(sport);
+  const duration = input.duration ?? GAME_DURATION_MINUTES;
+  if (!Number.isInteger(duration) || duration < 0 || (category === 'quadra' && duration < GAME_DURATION_MINUTES)) throw new Error(`Jogos de quadra precisam durar pelo menos ${GAME_DURATION_MINUTES} minutos.`);
+  const court = input.court?.trim() ?? '';
+  if (!input.unit?.trim() || !court) throw new Error('Informe a unidade do SENAI e o espaço do evento.');
+  const start = startTime(input.date, input.time), end = start + (duration || GAME_DURATION_MINUTES) * 60_000;
   if (!Number.isFinite(start) || start < Date.now() + 24 * 60 * 60_000) throw new Error('Crie o jogo com pelo menos 1 dia de antecedência.');
   if (!Number.isInteger(input.limit) || input.limit < 1) throw new Error('Informe um limite de jogadores válido.');
   if (input.limit > MAX_GAME_PLAYERS) throw new Error(`Cada partida aceita no máximo ${MAX_GAME_PLAYERS} jogadores.`);
   if (input.team1 && input.team1 === input.team2) throw new Error('Escolha equipes diferentes.');
-  if (state.games.some(game => game.status !== 'cancelado' && start < startTime(game.date, game.time) + game.duration * 60_000 && end > startTime(game.date, game.time))) throw new Error('Já existe um jogo ocupando a quadra nesse horário.');
-  state.games.push({ ...input, sport: input.sport ?? 'volei', id: uid('g'), duration: GAME_DURATION_MINUTES, court: 'Quadra SENAI', participantIds: [], sets: [], createdBy: actorId });
+  if (state.games.some(game => game.status !== 'cancelado' && (game.unit ?? '') === input.unit!.trim() && game.court === court && start < startTime(game.date, game.time) + (game.duration || GAME_DURATION_MINUTES) * 60_000 && end > startTime(game.date, game.time))) throw new Error('Já existe um evento neste espaço e horário.');
+  state.games.push({ ...input, sport, id: uid('g'), duration, unit: input.unit.trim(), court, participantIds: [], sets: [], createdBy: actorId });
   audit(state, actorId, `criou um jogo em ${input.date} às ${input.time}`);
 }
 export function joinGame(state: DemoState, actorId: string, gameId: string): void {
@@ -37,7 +43,7 @@ function updateTotals(state: DemoState, game: Game, multiplier: number): void {
   const a = state.teams.find(team => team.id === game.team1), b = state.teams.find(team => team.id === game.team2);
   if (!a || !b || !game.sets.length) return;
   const winsA = game.sets.filter(set => set.a > set.b).length, winsB = game.sets.filter(set => set.b > set.a).length;
-  if (winsA === winsB) return;
+  if (winsA === winsB) { a.draws = (a.draws ?? 0) + multiplier; b.draws = (b.draws ?? 0) + multiplier; return; }
   const winner = winsA > winsB ? a : b, loser = winsA > winsB ? b : a;
   winner.wins += multiplier; loser.losses += multiplier;
   const pointsA = game.sets.reduce((sum, set) => sum + set.a, 0), pointsB = game.sets.reduce((sum, set) => sum + set.b, 0);

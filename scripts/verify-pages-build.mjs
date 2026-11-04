@@ -30,7 +30,7 @@ const css = await readFile(cssFile, 'utf8');
 const localCssAssets = [...css.matchAll(/url\(["']?([^"')]+)["']?\)/g)]
   .map((match) => match[1])
   .filter((url) => !/^(?:data:|https?:|\/\/|#)/i.test(url));
-await Promise.all(localCssAssets.map((url) => url.startsWith(base)
+await Promise.all(localCssAssets.map((url) => url.startsWith(`${base}assets/`)
   ? verifyPagesUrl(url)
   : access(resolve(dirname(cssFile), decodeURIComponent(url)))));
 

@@ -8,7 +8,7 @@ import { PwaInstallButton } from './components/PwaInstallButton';
 import { AuthPage } from './pages/AuthPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { CalendarPage } from './pages/CalendarPage';
-import { CreateGamePage } from './pages/GamesPage';
+import { CreateGamePage, GamesPage } from './pages/GamesPage';
 import { TeamsPage } from './pages/TeamsPage';
 import { TournamentsPage } from './pages/TournamentsPage';
 import { HistoryPage } from './pages/HistoryPage';
@@ -21,12 +21,12 @@ import { todayISO, startTime } from './utils/format';
 import { supabaseConfigurationError } from './lib/supabaseConfig';
 
 function SignedInApp({ toggleTheme }: { toggleTheme: () => void }) {
-  const { user, logout } = useApp(), [route, setRoute] = useState<Route>('dashboard');
+  const { user, logout } = useApp(), [route, setRoute] = useState<Route>(() => user?.role === 'student' ? 'games' : 'dashboard');
   if (!user) return null;
   if (user.suspended) return <main className="auth-card-wrap suspended-page"><div className="auth-card"><Logo /><h2>Conta suspensa</h2><p className="muted">Olá, {user.name}. Sua conta está suspensa e as funções esportivas estão bloqueadas.</p><Button variant="secondary" onClick={logout}>Sair</Button></div></main>;
   const active = navItems(user.role).includes(route) ? route : 'dashboard';
   const pages = {
-    dashboard: <DashboardPage navigate={setRoute} />, calendar: <CalendarPage navigate={setRoute} />,
+    dashboard: <DashboardPage navigate={setRoute} />, games: <GamesPage navigate={setRoute} />, calendar: <CalendarPage navigate={setRoute} />,
     createGame: <CreateGamePage navigate={setRoute} />,
     management: <ManagementPage />, teams: <TeamsPage />, tournaments: <TournamentsPage />, history: <HistoryPage />,
     profile: <ProfilePage />, users: <UsersPage />, logs: <LogsPage />, howItWorks: <HowItWorksPage navigate={setRoute} />,
@@ -36,16 +36,15 @@ function SignedInApp({ toggleTheme }: { toggleTheme: () => void }) {
 function PublicHome({ navigate, onLogin }: { navigate: (route: Route) => void; onLogin: () => void }) {
   const { state } = useApp();
   const upcoming = [...state.games].filter(game => game.date >= todayISO() && game.status !== 'cancelado').sort((a, b) => startTime(a.date, a.time) - startTime(b.date, b.time));
-  return <div className="dashboard-page"><section className="hero dashboard-hero"><div><p className="eyebrow">ACESSO PÚBLICO</p><h2>Acompanhe os campeonatos sem criar uma conta.</h2><p>Consulte próximos jogos, horários, equipes e informações gerais dos campeonatos.</p></div><div className="dashboard-hero-actions"><Button variant="secondary" onClick={() => navigate('calendar')}>Abrir calendário</Button><Button onClick={onLogin}>Entrar como autorizado</Button></div></section><div className="cards dashboard-metrics"><Card><strong>{state.games.length}</strong><p>Partidas na agenda</p></Card><Card><strong>{state.teams.length}</strong><p>Equipes participantes</p></Card><Card><strong>{state.tournaments.length}</strong><p>Campeonatos</p></Card><Card><strong>Aberto</strong><p>Consulta sem login</p></Card></div><Card className="dashboard-upcoming"><div className="section-title"><div><p className="eyebrow">AGENDA</p><h2>Próximos jogos</h2></div><button className="link-btn" onClick={() => navigate('calendar')}>Ver calendário →</button></div><GameList games={upcoming.slice(0, 6)} /></Card></div>;
+  return <div className="dashboard-page"><section className="hero dashboard-hero"><div><p className="eyebrow">SESI E SENAI SPORTS</p><h2>O esporte conecta pessoas, equipes e talentos.</h2><p>Acompanhe as atividades esportivas, descubra os próximos confrontos, conheça as equipes e fique por dentro de tudo o que acontece nas unidades.</p></div><div className="dashboard-hero-actions"><Button variant="secondary" onClick={() => navigate('calendar')}>Abrir calendário</Button><Button onClick={onLogin}>Entrar</Button></div></section><div className="cards dashboard-metrics"><Card><strong>{state.games.length}</strong><p>Partidas na agenda</p></Card><Card><strong>{state.teams.length}</strong><p>Equipes participantes</p></Card><Card><strong>{state.tournaments.length}</strong><p>Campeonatos</p></Card><Card><strong>Aberto</strong><p>Consulta sem login</p></Card></div><Card className="dashboard-upcoming"><div className="section-title"><div><p className="eyebrow">AGENDA</p><h2>Próximos jogos</h2></div><button className="link-btn" onClick={() => navigate('calendar')}>Ver calendário →</button></div><GameList games={upcoming.slice(0, 6)} /></Card></div>;
 }
 function PublicApp({ toggleTheme }: { toggleTheme: () => void }) {
   const [route, setRoute] = useState<Route>('dashboard'), [login, setLogin] = useState(false);
   const navigate = (next: Route) => {
-    if (next === 'history') { setRoute('dashboard'); setLogin(true); return; }
-    setRoute(['dashboard', 'calendar', 'teams', 'tournaments', 'howItWorks'].includes(next) ? next : 'dashboard');
+    setRoute(['dashboard', 'games', 'calendar', 'teams', 'tournaments', 'history', 'howItWorks'].includes(next) ? next : 'dashboard');
   };
   if (login) return <AuthPage onBack={() => setLogin(false)} />;
-  const pages: Partial<Record<Route, React.ReactNode>> = { dashboard: <PublicHome navigate={navigate} onLogin={() => setLogin(true)} />, calendar: <CalendarPage navigate={navigate} />, teams: <TeamsPage />, tournaments: <TournamentsPage />, history: <HistoryPage onLogin={() => setLogin(true)} />, howItWorks: <HowItWorksPage navigate={navigate} onLogin={() => setLogin(true)} /> };
+  const pages: Partial<Record<Route, React.ReactNode>> = { dashboard: <PublicHome navigate={navigate} onLogin={() => setLogin(true)} />, games: <GamesPage navigate={navigate} />, calendar: <CalendarPage navigate={navigate} />, teams: <TeamsPage />, tournaments: <TournamentsPage />, history: <HistoryPage />, howItWorks: <HowItWorksPage navigate={navigate} onLogin={() => setLogin(true)} /> };
   return <AppLayout route={route} navigate={navigate} toggleTheme={toggleTheme} onLogin={() => setLogin(true)}>{pages[route]}</AppLayout>;
 }
 export default function App() {

@@ -6,13 +6,22 @@ import { uid } from '../utils/format';
 export function teamPlayers(state: DemoState, team: Team): string[] {
   return team.memberIds.filter(id => state.users.some(user => user.id === id && user.role !== 'director'));
 }
-export function createTeam(state: DemoState, actorId: string, name: string, teacherId: string, sport: Sport = 'volei'): Team {
+export function createTeam(state: DemoState, actorId: string, name: string, teacherId = '', sport: Sport = 'volei'): Team {
   const actor = requireActor(state, actorId);
   if (actor.role === 'director') throw new Error('Esta ação está disponível para alunos e professores.');
   if (actor.role === 'student' && state.teams.some(team => team.creatorId === actorId)) throw new Error('Cada aluno pode criar no máximo uma equipe.');
-  if (!state.users.some(user => user.id === teacherId && user.role === 'teacher' && !user.suspended)) throw new Error('Selecione um professor responsável ativo.');
-  const team: Team = { id: uid('t'), name: requireName(name), sport, status: actor.role === 'student' ? 'pendente' : 'ativa', creatorId: actorId, teacherIds: [teacherId], memberIds: [actorId], reserveIds: [], wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0 };
+  if (teacherId && !state.users.some(user => user.id === teacherId && user.role === 'teacher' && !user.suspended)) throw new Error('Selecione um professor responsável ativo.');
+  if (actor.role === 'teacher' && !teacherId) throw new Error('Selecione um professor responsável ativo.');
+  const team: Team = { id: uid('t'), name: requireName(name), sport, status: actor.role === 'student' ? 'pendente' : 'ativa', creatorId: actorId, teacherIds: teacherId ? [teacherId] : [], memberIds: [actorId], reserveIds: [], wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0 };
   state.teams.push(team); audit(state, actorId, `criou a equipe ${team.name}`); return team;
+}
+export function joinTeam(state: DemoState, actorId: string, teamId: string): void {
+  const actor = requireActor(state, actorId), team = state.teams.find(item => item.id === teamId);
+  if (!team || actor.role !== 'student' || team.status !== 'ativa') throw new Error('Esta equipe não está disponível para entrada.');
+  if (team.memberIds.includes(actorId) || team.reserveIds.includes(actorId)) throw new Error('Você já faz parte desta equipe.');
+  if (team.memberIds.length >= 6) throw new Error('A equipe já atingiu o limite de titulares.');
+  if (state.teams.some(item => item.id !== teamId && (item.memberIds.includes(actorId) || item.reserveIds.includes(actorId)))) throw new Error('Você já está inscrito em outra equipe.');
+  team.memberIds.push(actorId); audit(state, actorId, `entrou na equipe ${team.name}`);
 }
 export function saveRoster(state: DemoState, actorId: string, teamId: string, memberIds: string[], reserveIds: string[]): void {
   const actor = requireActor(state, actorId), team = state.teams.find(item => item.id === teamId);

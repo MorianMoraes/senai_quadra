@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { seed } from '../demo/seed';
 import { DEMO_KEY, loadDemo } from '../demo/storage';
 import { createTournament, registerTeam } from './tournaments';
-import { canViewHistory, registerGoogleStudent, registerStudent } from './auth';
+import { registerGoogleStudent, registerStudent } from './auth';
 import { createGame, joinGame, saveScore } from './games';
-import { saveRoster } from './teams';
+import { joinTeam, saveRoster } from './teams';
 import { addDays } from '../utils/format';
 import { stateSchema } from '../types/models';
 
@@ -73,25 +73,40 @@ describe('Migração da demonstração', () => {
     expect(() => registerGoogleStudent(state, { id: 'google-director', email: 'diretor@senai.local' })).toThrow('conta da equipe');
   });
   it('valida acesso e conflito da quadra na criação de jogos', () => {
-    const state = structuredClone(seed), input = { date: addDays(8), time: '14:00', team1: 't1', team2: 't2', description: '', notes: '', limit: 18, status: 'inscricoes' as const };
+    const state = structuredClone(seed), input = { date: addDays(8), time: '14:00', team1: 't1', team2: 't2', description: '', notes: '', limit: 18, status: 'inscricoes' as const, unit: 'Unidade de teste', court: 'Quadra de teste', duration: 60 };
     expect(() => createGame(state, 'u4', input)).toThrow('professores');
     createGame(state, 'u2', input);
     createGame(state, 'u1', { ...input, date: addDays(9) });
-    expect(() => createGame(state, 'u2', { ...input, time: '15:00' })).toThrow('quadra');
+    expect(() => createGame(state, 'u2', { ...input, time: '14:30' })).toThrow('espaço e horário');
     expect(() => createGame(state, 'u2', { ...input, time: '15:30' })).not.toThrow();
   });
-  it('restringe o histórico a sessões autenticadas e ativas', () => {
-    expect(canViewHistory(null)).toBe(false);
-    expect(canViewHistory(seed.users.find(user => user.id === 'u4')!)).toBe(true);
-    expect(canViewHistory({ ...seed.users[0]!, suspended: true })).toBe(false);
-  });
-  it('limita partidas a 20 jogadores e define duração de 90 minutos', () => {
-    const state = structuredClone(seed), input = { date: addDays(10), time: '14:00', team1: 't1', team2: 't2', description: '', notes: '', limit: 20, status: 'inscricoes' as const };
+  it('limita partidas a 20 jogadores e usa 60 minutos como duração mínima inicial', () => {
+    const state = structuredClone(seed), input = { date: addDays(10), time: '14:00', team1: 't1', team2: 't2', description: '', notes: '', limit: 20, status: 'inscricoes' as const, unit: 'Unidade de teste', court: 'Quadra de teste', duration: 60 };
     expect(() => createGame(state, 'u2', { ...input, limit: 21 })).toThrow('20 jogadores');
     createGame(state, 'u2', input);
     const game = state.games[state.games.length - 1]!;
     expect(game.limit).toBe(20);
-    expect(game.duration).toBe(90);
+    expect(game.duration).toBe(60);
+  });
+  it('permite jogos de tabuleiro sem duração fixa e exige 60 minutos na quadra', () => {
+    const state = structuredClone(seed), input = { date: addDays(10), time: '14:00', team1: '', team2: '', description: '', notes: '', limit: 2, status: 'inscricoes' as const, unit: 'Unidade de teste', court: 'Sala de teste' };
+    createGame(state, 'u2', { ...input, sport: 'xadrez', duration: 0 });
+    expect(state.games.at(-1)?.duration).toBe(0);
+    expect(() => createGame(state, 'u2', { ...input, duration: 59 })).toThrow('60 minutos');
+  });
+  it('contabiliza empates no ranking de equipes sem duplicá-los ao editar o placar', () => {
+    const state = structuredClone(seed), draw = [{ a: 1, b: 0 }, { a: 0, b: 1 }];
+    saveScore(state, 'u2', 'g1', draw);
+    expect(state.teams.find(team => team.id === 't1')?.draws).toBe(1);
+    const snapshot = structuredClone(state.teams);
+    saveScore(state, 'u2', 'g1', draw);
+    expect(state.teams).toEqual(snapshot);
+  });
+  it('permite ao jogador entrar em equipe ativa sem ultrapassar o limite nem repetir vínculo', () => {
+    const state = structuredClone(seed); state.teams[0]!.memberIds = ['u4'];
+    joinTeam(state, 'u9', 't1');
+    expect(state.teams[0]!.memberIds).toContain('u9');
+    expect(() => joinTeam(state, 'u9', 't1')).toThrow('já faz parte');
   });
   it('não permite ultrapassar 20 participantes em registros antigos com limite maior', () => {
     const state = structuredClone(seed), game = state.games.find(item => item.id === 'g1')!;

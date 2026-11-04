@@ -12,15 +12,17 @@ export const sports: { id: Sport; name: string; category: 'quadra' | 'mesa'; ico
   { id: 'dama', name: 'Dama', category: 'mesa', icon: <><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M4 9h16M4 15h16M9 4v16m6-16v16" /><circle cx="6.5" cy="6.5" r="1.3" /><circle cx="17.5" cy="17.5" r="1.3" /></> },
   { id: 'ludo', name: 'Ludo', category: 'mesa', icon: <><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M12 4v6m0 4v6M4 12h6m4 0h6" /><circle cx="8" cy="8" r="1" /><circle cx="16" cy="8" r="1" /><circle cx="8" cy="16" r="1" /><circle cx="16" cy="16" r="1" /></> },
   { id: 'pingue-pongue', name: 'Pingue-pongue', category: 'mesa', icon: <><path d="M4 4v16m16-16v16M4 12h16" /><circle cx="9" cy="8" r="3" /><path d="m11 10 3 3" /><circle cx="17" cy="6" r="1" /></> },
+  { id: 'outra-quadra', name: 'Outra modalidade', category: 'quadra', icon: <><circle cx="12" cy="12" r="9" /><path d="M7 7l10 10m0-10L7 17M3 12h4m10 0h4" /></> },
+  { id: 'outro-tabuleiro', name: 'Outro jogo de mesa', category: 'mesa', icon: <><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M8 8h.01M12 8h.01M16 8h.01M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01" /></> },
 ];
 
 export function SportIcon({ sport, className = '' }: { sport: Sport; className?: string }) {
-  const selected = sports.find(item => item.id === sport) ?? sports[1]!;
+  const selected = sports.find(item => item.id === sport) ?? sports.find(item => item.id === 'outra-quadra')!;
   return <svg className={`sport-icon ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label={selected.name}>{selected.icon}</svg>;
 }
 
 export function SportLabel({ sport, className = '' }: { sport: Sport; className?: string }) {
-  const selected = sports.find(item => item.id === sport) ?? sports[1]!;
+  const selected = sports.find(item => item.id === sport) ?? sports.find(item => item.id === 'outra-quadra')!;
   return <span className={`sport-label ${className}`}><SportIcon sport={selected.id} /><span>{selected.name}</span></span>;
 }
 
