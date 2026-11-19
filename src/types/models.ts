@@ -15,7 +15,7 @@ export const teamSchema = z.object({
 });
 export const setSchema = z.object({ a: z.number(), b: z.number() });
 export const gameSchema = z.object({
-  id: z.string(), sport: sportSchema.default('volei'), date: z.string(), time: z.string(), duration: z.number().default(0), unit: z.string().optional(), court: z.string(),
+  id: z.string(), sport: sportSchema.default('volei'), date: z.string(), time: z.string(), duration: z.number().default(0), unit: z.string().optional(), court: z.string(), calendar: z.string().optional(),
   team1: z.string(), team2: z.string(), limit: z.number(), description: z.string(), notes: z.string(),
   status: z.enum(['inscricoes', 'agendado', 'finalizado', 'cancelado']),
   participantIds: z.array(z.string()), sets: z.array(setSchema), createdBy: z.string(),

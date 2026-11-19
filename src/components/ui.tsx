@@ -25,9 +25,12 @@ export function SelectField({ label, name, children, defaultValue = '', required
   const id = useId();
   return <div className="form-field"><label htmlFor={id}>{label}</label><select id={id} name={name} defaultValue={defaultValue} required={required}>{children}</select></div>;
 }
-export function PasswordField({ label = 'Senha', name = 'password', onValue }: { label?: string; name?: string; onValue?: (value: string) => void }) {
-  const id = useId(), [visible, setVisible] = useState(false);
-  return <div className="form-field"><label htmlFor={id}>{label}</label><div className="password-input"><input id={id} name={name} type={visible ? 'text' : 'password'} autoComplete={name === 'confirm' ? 'new-password' : 'current-password'} required onChange={event => onValue?.(event.target.value)} /><button type="button" className="link-btn" aria-label={`${visible ? 'Ocultar' : 'Mostrar'} ${label.toLowerCase()}`} onClick={() => setVisible(!visible)}>{visible ? 'Ocultar' : 'Mostrar'}</button></div></div>;
+export function PasswordField({ label = 'Senha', name = 'password', onValue, showRequirements = false }: { label?: string; name?: string; onValue?: (value: string) => void; showRequirements?: boolean }) {
+  const id = useId(), [visible, setVisible] = useState(false), [value, setValue] = useState('');
+  const rules = [{ label: 'Pelo menos 8 caracteres', ok: value.length >= 8 }, { label: 'Uma letra maiúscula', ok: /[A-Z]/.test(value) }, { label: 'Uma letra minúscula', ok: /[a-z]/.test(value) }, { label: 'Um número', ok: /\d/.test(value) }, { label: 'Um caractere especial', ok: /[^A-Za-z0-9]/.test(value) }];
+  const score = rules.filter(rule => rule.ok).length, level = score === 5 ? 3 : score >= 3 ? 2 : score ? 1 : 0;
+  const strength = level === 3 ? 'Forte' : level === 2 ? 'Média' : 'Fraca';
+  return <div className="form-field"><label htmlFor={id}>{label}</label><div className="password-input"><input id={id} name={name} type={visible ? 'text' : 'password'} autoComplete={name === 'confirm' ? 'new-password' : showRequirements ? 'new-password' : 'current-password'} required onChange={event => { setValue(event.target.value); onValue?.(event.target.value); }} /></div>{showRequirements && <div className="password-guidance" aria-live="polite"><div className="password-strength"><span>Força da senha</span><strong data-level={level}>{value ? strength : 'Digite uma senha'}</strong></div><div className="password-meter" data-level={level} aria-label={`Força da senha: ${value ? strength : 'não informada'}`}><span /><span /><span /></div><ul className="password-rules">{rules.map(rule => <li key={rule.label} className={rule.ok ? 'met' : ''}><span aria-hidden="true">{rule.ok ? '✓' : '○'}</span>{rule.label}</li>)}</ul></div>}<button type="button" className="link-btn password-visibility" aria-label={`${visible ? 'Ocultar' : 'Mostrar'} ${label.toLowerCase()}`} onClick={() => setVisible(!visible)}>{visible ? 'Ocultar' : 'Mostrar'}</button></div>;
 }
 export function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null), titleId = useId();

@@ -225,7 +225,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       const { data, error } = await supabase.auth.signUp({
         email: cleanEmail, password,
-        options: { data: { name: cleanName, turma: cleanTurma }, emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}` },
+        options: { data: { name: cleanName, turma: cleanTurma }, emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}?email-confirmed=1` },
       });
       if (error) throw error;
       if (!data.user) throw new Error('O Supabase não confirmou a criação da conta.');

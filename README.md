@@ -21,7 +21,7 @@ O projeto já possui `public.profiles` com as colunas `id`, `nome`, `email`, `av
 
 Aplique, nesta ordem, `supabase/migrations/20261104000200_player_actions.sql`, `supabase/migrations/20261104000300_public_profile_minimization.sql` e `supabase/migrations/20261104000400_non_null_role_guard.sql` no SQL Editor. A migration 002 libera as RPCs de entrada de jogadores em jogos/equipes e montagem de elenco, restritas ao perfil `student`, sem conceder atualização geral de `sports_state`. A migration 003 limita a view pública aos nomes, funções e fotos necessários para mostrar participantes, ocultando e-mail, turma, matrícula, idade e perfis suspensos. A migration 004 faz as funções SQL rejeitarem explicitamente usuários anônimos e perfis suspensos.
 
-Em Supabase Authentication, habilite e-mail/senha e configure os URLs de retorno para desenvolvimento e para o domínio de produção. As contas são criadas no Supabase Auth. O trigger cria novos perfis como `student`; um administrador deve conferir e promover representantes no SQL Editor:
+Em Supabase Authentication, habilite e-mail/senha e configure os URLs de retorno para desenvolvimento e para o domínio de produção. Inclua o retorno do app com `?email-confirmed=1` na lista de URLs permitidas para que a tela de confirmação seja aberta após a validação. As contas são criadas no Supabase Auth. O trigger cria novos perfis como `student`; um administrador deve conferir e promover representantes no SQL Editor:
 
 ```sql
 update public.profiles set role = 'teacher' where email = 'representante@exemplo.edu.br';

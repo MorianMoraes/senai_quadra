@@ -23,7 +23,7 @@ async function navigate(page: Page, route: string) {
 
 async function logout(page: Page) {
   await openMenu(page);
-  await page.getByRole('button', { name: 'Sair', exact: true }).click();
+  await page.locator('.user-mini').getByRole('button', { name: 'Sair', exact: true }).click();
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
@@ -66,14 +66,61 @@ test('visitante pode criar uma conta de jogador', async ({ page }) => {
   await page.goto('/');
   await startLogin(page);
   await page.getByRole('button', { name: 'Criar conta de jogador' }).click();
+  await expect(page.getByText('Pelo menos 8 caracteres')).toBeVisible();
   await page.getByLabel('Nome completo').fill('Novo Jogador');
   await page.getByLabel('Turma').fill('1º A');
   await page.getByLabel('E-mail', { exact: true }).fill(`jogador-${Date.now()}@senai.local`);
   await page.getByLabel('Senha', { exact: true }).fill('NovoJogador@123');
+  await expect(page.locator('.password-strength strong')).toHaveText('Forte');
   await page.locator('input[name=confirm]').fill('NovoJogador@123');
   await page.getByRole('button', { name: 'Criar conta', exact: true }).click();
   await expect(page.locator('.topbar h1')).toHaveText('Jogos');
   await expect(page.getByText('Jogador', { exact: true })).toBeVisible();
+});
+test('tela de confirmação de e-mail oferece retorno seguro ao login', async ({ page }) => {
+  await page.goto('/?email-confirmed=1');
+  await expect(page.getByRole('heading', { name: 'E-mail confirmado' })).toBeVisible();
+  await page.getByRole('button', { name: 'Ir para entrar' }).click();
+  await expect(page.getByLabel('E-mail', { exact: true })).toBeVisible();
+});
+test('jogador acessa a agenda personalizada e representante cria calendário e gerencia placares', async ({ page }) => {
+  await page.goto('/');
+  await startLogin(page);
+  await login(page, 'aluno@senai.local', 'Aluno@123');
+  await navigate(page, 'calendar');
+  await page.getByRole('button', { name: 'Lista', exact: true }).click();
+  await page.getByRole('button', { name: 'Ver minha agenda' }).click();
+  await expect(page.getByRole('button', { name: 'Minha agenda ✓' })).toBeVisible();
+  await expect(page.locator('.game-table')).toContainText('Fênix Azul');
+
+  await logout(page);
+  await startLogin(page);
+  await login(page, 'professor@senai.local', 'Professor@123');
+  await navigate(page, 'createGame');
+  await page.getByLabel('Unidade do SENAI').fill('Unidade de teste');
+  await page.getByLabel('Local ou espaço').fill('Quadra e2e');
+  await page.getByLabel('Data', { exact: true }).fill(new Date(Date.now() + 4 * 86400000).toISOString().slice(0, 10));
+  await page.getByLabel('Horário', { exact: true }).fill('18:00');
+  await page.locator('select[name="calendar"]').selectOption('__novo__');
+  await page.getByLabel('Nome do novo calendário (se selecionado)').fill('Interclasses e2e');
+  await page.getByRole('button', { name: 'Salvar atividade' }).click();
+  await expect(page.getByRole('button', { name: 'Lista', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Lista', exact: true }).click();
+  await expect(page.locator('.game-table')).toContainText('Interclasses e2e');
+
+  await navigate(page, 'management');
+  await page.locator('.management-nav').getByRole('button', { name: /Placar e pontuação/ }).click();
+  await expect(page.getByRole('heading', { name: 'Placar e pontuação' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Resultado' }).first()).toBeVisible();
+  await navigate(page, 'games');
+  await page.getByRole('button', { name: 'Resultado' }).first().click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.locator('input[name="a0"]').fill('25');
+  await page.locator('input[name="b0"]').fill('20');
+  await page.locator('input[name="a1"]').fill('25');
+  await page.locator('input[name="b1"]').fill('18');
+  await page.getByRole('button', { name: 'Salvar resultado' }).click();
+  await expect(page.locator('.toast')).toContainText('Resultado salvo.');
 });
 test('jogador autenticado pode inscrever-se e gerenciar o próprio perfil', async ({ page }) => {
   await page.goto('/');

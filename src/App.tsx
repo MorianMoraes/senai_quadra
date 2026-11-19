@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Route } from './types/models';
 import { useApp } from './contexts/AppContext';
 import { useTheme } from './hooks/useTheme';
@@ -28,7 +28,7 @@ function SignedInApp({ toggleTheme }: { toggleTheme: () => void }) {
   const pages = {
     dashboard: <DashboardPage navigate={setRoute} />, games: <GamesPage navigate={setRoute} />, calendar: <CalendarPage navigate={setRoute} />,
     createGame: <CreateGamePage navigate={setRoute} />,
-    management: <ManagementPage />, teams: <TeamsPage />, tournaments: <TournamentsPage />, history: <HistoryPage />,
+    management: <ManagementPage navigate={setRoute} />, teams: <TeamsPage />, tournaments: <TournamentsPage />, history: <HistoryPage />,
     profile: <ProfilePage />, users: <UsersPage />, logs: <LogsPage />, howItWorks: <HowItWorksPage navigate={setRoute} />,
   } satisfies Record<Route, React.ReactNode>;
   return <AppLayout route={active} navigate={setRoute} toggleTheme={toggleTheme} onLogin={() => {}}>{pages[active]}</AppLayout>;
@@ -49,5 +49,10 @@ function PublicApp({ toggleTheme }: { toggleTheme: () => void }) {
 }
 export default function App() {
   const { user } = useApp(), { toggleTheme } = useTheme();
+  const [emailConfirmed, setEmailConfirmed] = useState(() => new URLSearchParams(window.location.search).get('email-confirmed') === '1');
+  const [confirmationLogin, setConfirmationLogin] = useState(false);
+  useEffect(() => { if (user && confirmationLogin) setConfirmationLogin(false); }, [user, confirmationLogin]);
+  if (emailConfirmed) return <main className="email-confirmation-page"><section className="email-confirmation-card"><Logo /><div className="confirmation-mark">✓</div><p className="eyebrow">CADASTRO SENAI SPORTS</p><h1>E-mail confirmado</h1><p>Seu endereço foi validado. Agora você pode entrar para acompanhar jogos, eventos e sua agenda esportiva.</p><Button onClick={() => { const url = new URL(window.location.href); url.searchParams.delete('email-confirmed'); window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`); setEmailConfirmed(false); setConfirmationLogin(!user); }}>{user ? 'Continuar para o sistema' : 'Ir para entrar'}</Button></section></main>;
+  if (confirmationLogin) return <><AuthPage onBack={() => setConfirmationLogin(false)} /><Toast /></>;
   return <>{supabaseConfigurationError && <aside className="supabase-config-alert" role="status"><strong>Supabase não configurado.</strong> A demonstração local continua disponível; autenticação e dados remotos exigem as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY nos Secrets do GitHub Actions.</aside>}{user ? <SignedInApp key={user.id} toggleTheme={toggleTheme} /> : <PublicApp toggleTheme={toggleTheme} />}<PwaInstallButton /><Toast /></>;
 }

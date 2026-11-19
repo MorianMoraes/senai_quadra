@@ -1,8 +1,10 @@
 export function inappropriateName(value: string): boolean {
-  const normalized = value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/4/g, 'a').replace(/3/g, 'e').replace(/1/g, 'i').replace(/0/g, 'o')
-    .replace(/5/g, 's').replace(/7/g, 't').replace(/[^a-z]/g, '');
-  return ['porra','caralho','merda','puta','puto','viado','buceta','pinto','sexo','nazista','racista'].some(word => normalized.includes(word));
+  const words = value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/4/g, 'a').replace(/3/g, 'e').replace(/[1!]/g, 'i').replace(/0/g, 'o')
+    .replace(/[5$]/g, 's').replace(/7/g, 't').split(/[^a-z]+/).filter(Boolean);
+  const compact = words.join('');
+  const banned = ['porra', 'caralho', 'merda', 'puta', 'puto', 'viado', 'buceta', 'nazista', 'racista', 'bosta', 'foda', 'fodase', 'arrombado', 'vagabundo', 'vagabunda', 'retardado', 'retardada'];
+  return banned.some(word => compact.includes(word)) || words.some(word => ['cu', 'pnc'].includes(word));
 }
 export function passwordScore(password: string) {
   const rules = [password.length >= 8, /[A-Z]/.test(password), /[a-z]/.test(password), /\d/.test(password), /[^A-Za-z0-9]/.test(password)];

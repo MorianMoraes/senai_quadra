@@ -1,14 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { seed } from '../demo/seed';
 import { DEMO_KEY, loadDemo } from '../demo/storage';
-import { createTournament, registerTeam } from './tournaments';
+import { createTournament, generateTournamentBracket, registerTeam, saveTournamentMatchResult } from './tournaments';
 import { registerGoogleStudent, registerStudent } from './auth';
 import { createGame, joinGame, saveScore } from './games';
 import { joinTeam, saveRoster } from './teams';
 import { addDays } from '../utils/format';
 import { stateSchema } from '../types/models';
+import { inappropriateName, passwordScore } from '../utils/validation';
 
 describe('Migração da demonstração', () => {
+  it('exibe requisitos de senha e bloqueia nomes com conteúdo impróprio', () => {
+    expect(passwordScore('Senha@123')).toMatchObject({ valid: true, level: 3 });
+    expect(passwordScore('senha')).toMatchObject({ valid: false, level: 1 });
+    expect(inappropriateName('Racista')).toBe(true);
+    expect(inappropriateName('Ana Lima')).toBe(false);
+  });
   it('valida os dados e preserva os perfis antigos sem sobrescrever a chave anterior', () => {
     expect(stateSchema.safeParse(seed).success).toBe(true);
     const legacy = { ...seed, users: seed.users.map(user => ({ ...user, role: ({ student: 'aluno', teacher: 'professor', director: 'diretor' })[user.role] })) };
@@ -58,6 +65,30 @@ describe('Migração da demonstração', () => {
     expect(state.tournaments[0]!.registrations[0]!.memberIds).toHaveLength(6);
     expect(state.tournaments[0]!.registrations[0]!.memberIds).not.toContain('u9');
   });
+  it('gera chaveamento e avança os vencedores, com edição restrita a representantes', () => {
+    const state = structuredClone(seed); createTournament(state, 'u2', 'Copa', addDays(12));
+    const tournament = state.tournaments[0]!; tournament.teamIds = ['t1', 't2', 't3'];
+    const beforeT1 = { wins: state.teams[0]!.wins, losses: state.teams[0]!.losses, pointsFor: state.teams[0]!.pointsFor };
+    const beforeT2 = { wins: state.teams[1]!.wins, losses: state.teams[1]!.losses, pointsFor: state.teams[1]!.pointsFor };
+    expect(() => generateTournamentBracket(state, 'u4', tournament.id)).toThrow('professores');
+    generateTournamentBracket(state, 'u2', tournament.id);
+    expect(tournament.rounds.map(round => round.length)).toEqual([2, 1]);
+    expect(tournament.rounds[1]?.[0]?.a).toBe('t1');
+    expect(() => saveTournamentMatchResult(state, 'u4', tournament.id, 0, 1, 2, 1)).toThrow('professores');
+    saveTournamentMatchResult(state, 'u2', tournament.id, 0, 1, 2, 1);
+    expect(tournament.rounds[1]?.[0]?.b).toBe('t2');
+    saveTournamentMatchResult(state, 'u2', tournament.id, 1, 0, 3, 0);
+    expect(tournament.rounds[1]?.[0]?.winner).toBe('t1');
+    expect(state.teams[0]!.wins).toBe(beforeT1.wins + 1);
+    expect(state.teams[0]!.pointsFor).toBe(beforeT1.pointsFor + 3);
+    saveTournamentMatchResult(state, 'u2', tournament.id, 1, 0, 1, 4);
+    expect(tournament.rounds[1]?.[0]?.winner).toBe('t2');
+    expect(state.teams[0]!.wins).toBe(beforeT1.wins);
+    expect(state.teams[1]!.wins).toBe(beforeT2.wins + 2);
+    generateTournamentBracket(state, 'u2', tournament.id);
+    expect(state.teams[1]!.wins).toBe(beforeT2.wins);
+    expect(state.teams[1]!.pointsFor).toBe(beforeT2.pointsFor);
+  });
   it('vincula autenticação Google a perfil de aluno e nunca promove contas da equipe', () => {
     const state = structuredClone(seed);
     const created = registerGoogleStudent(state, { id: 'google-user-1', email: 'novo.aluno@example.com', name: 'Novo Aluno' });
@@ -98,6 +129,7 @@ describe('Migração da demonstração', () => {
     const state = structuredClone(seed), draw = [{ a: 1, b: 0 }, { a: 0, b: 1 }];
     saveScore(state, 'u2', 'g1', draw);
     expect(state.teams.find(team => team.id === 't1')?.draws).toBe(1);
+    expect(state.teams.find(team => team.id === 't1')?.pointsFor).toBeGreaterThan(seed.teams.find(team => team.id === 't1')!.pointsFor);
     const snapshot = structuredClone(state.teams);
     saveScore(state, 'u2', 'g1', draw);
     expect(state.teams).toEqual(snapshot);
@@ -118,5 +150,10 @@ describe('Migração da demonstração', () => {
     const state = structuredClone(seed), sets = [{ a: 25, b: 15 }, { a: 25, b: 10 }];
     saveScore(state, 'u2', 'g1', sets); const previous = structuredClone(state.teams);
     saveScore(state, 'u2', 'g1', sets); expect(state.teams).toEqual(previous);
+  });
+  it('preserva o calendário personalizado no jogo criado', () => {
+    const state = structuredClone(seed);
+    createGame(state, 'u2', { date: addDays(13), time: '14:00', team1: '', team2: '', description: '', notes: '', limit: 8, status: 'inscricoes', unit: 'Unidade de teste', court: 'Quadra de teste', calendar: 'Interclasses', duration: 60 });
+    expect(state.games.at(-1)?.calendar).toBe('Interclasses');
   });
 });
