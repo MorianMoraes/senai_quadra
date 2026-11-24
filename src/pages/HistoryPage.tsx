@@ -6,7 +6,7 @@ import { sports } from '../components/SportIcon';
 
 export function HistoryPage() {
   const { state } = useApp();
-  const teams = [...state.teams].sort((a, b) => b.wins - a.wins || (b.draws ?? 0) - (a.draws ?? 0) || b.pointsFor - a.pointsFor);
+  const teams = state.teams.filter(team => team.status === 'ativa').sort((a, b) => b.wins - a.wins || (b.draws ?? 0) - (a.draws ?? 0) || b.pointsFor - a.pointsFor);
   const games = state.games.filter(game => game.status === 'finalizado').sort((a, b) => startTime(b.date, b.time) - startTime(a.date, a.time));
   return <div className="performance-page">
     <section aria-labelledby="history-ranking-title">

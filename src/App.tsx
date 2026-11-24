@@ -8,7 +8,7 @@ import { PwaInstallButton } from './components/PwaInstallButton';
 import { AuthPage } from './pages/AuthPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { CalendarPage } from './pages/CalendarPage';
-import { CreateGamePage, GamesPage } from './pages/GamesPage';
+import { CreateGamePage, GameDetails, GamesPage } from './pages/GamesPage';
 import { TeamsPage } from './pages/TeamsPage';
 import { TournamentsPage } from './pages/TournamentsPage';
 import { HistoryPage } from './pages/HistoryPage';
@@ -23,8 +23,9 @@ import { supabaseConfigurationError } from './lib/supabaseConfig';
 function SignedInApp({ toggleTheme }: { toggleTheme: () => void }) {
   const { user, logout } = useApp(), [route, setRoute] = useState<Route>(() => user?.role === 'student' ? 'games' : 'dashboard');
   if (!user) return null;
-  if (user.suspended) return <main className="auth-card-wrap suspended-page"><div className="auth-card"><Logo /><h2>Conta suspensa</h2><p className="muted">Olá, {user.name}. Sua conta está suspensa e as funções esportivas estão bloqueadas.</p><Button variant="secondary" onClick={logout}>Sair</Button></div></main>;
-  const active = navItems(user.role).includes(route) ? route : 'dashboard';
+  if (user.suspended) return <main className="auth-card-wrap suspended-page"><div className="auth-card"><Logo /><h2>Conta suspensa</h2><p className="muted">Olá, {user.name || 'usuário'}. Sua conta está suspensa e as funções esportivas estão bloqueadas.</p><Button variant="secondary" onClick={logout}>Sair</Button></div></main>;
+  const allowed = navItems(user.role);
+  const active = allowed.includes(route) ? route : (allowed[0] ?? 'games');
   const pages = {
     dashboard: <DashboardPage navigate={setRoute} />, games: <GamesPage navigate={setRoute} />, calendar: <CalendarPage navigate={setRoute} />,
     createGame: <CreateGamePage navigate={setRoute} />,
@@ -35,8 +36,10 @@ function SignedInApp({ toggleTheme }: { toggleTheme: () => void }) {
 }
 function PublicHome({ navigate, onLogin }: { navigate: (route: Route) => void; onLogin: () => void }) {
   const { state } = useApp();
-  const upcoming = [...state.games].filter(game => game.date >= todayISO() && game.status !== 'cancelado').sort((a, b) => startTime(a.date, a.time) - startTime(b.date, b.time));
-  return <div className="dashboard-page"><section className="hero dashboard-hero"><div><p className="eyebrow">SESI E SENAI SPORTS</p><h2>O esporte conecta pessoas, equipes e talentos.</h2><p>Acompanhe as atividades esportivas, descubra os próximos confrontos, conheça as equipes e fique por dentro de tudo o que acontece nas unidades.</p></div><div className="dashboard-hero-actions"><Button variant="secondary" onClick={() => navigate('calendar')}>Abrir calendário</Button><Button onClick={onLogin}>Entrar</Button></div></section><div className="cards dashboard-metrics"><Card><strong>{state.games.length}</strong><p>Partidas na agenda</p></Card><Card><strong>{state.teams.length}</strong><p>Equipes participantes</p></Card><Card><strong>{state.tournaments.length}</strong><p>Campeonatos</p></Card><Card><strong>Aberto</strong><p>Consulta sem login</p></Card></div><Card className="dashboard-upcoming"><div className="section-title"><div><p className="eyebrow">AGENDA</p><h2>Próximos jogos</h2></div><button className="link-btn" onClick={() => navigate('calendar')}>Ver calendário →</button></div><GameList games={upcoming.slice(0, 6)} /></Card></div>;
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const upcoming = [...state.games].filter(game => game.date >= todayISO() && game.status !== 'cancelado' && game.status !== 'finalizado').sort((a, b) => startTime(a.date, a.time) - startTime(b.date, b.time));
+  const detailGame = state.games.find(game => game.id === detailId);
+  return <div className="dashboard-page"><section className="hero dashboard-hero"><div><p className="eyebrow">SESI E SENAI SPORTS</p><h2>O esporte conecta pessoas, equipes e talentos.</h2><p>Acompanhe as atividades esportivas, descubra os próximos confrontos, conheça as equipes e fique por dentro de tudo o que acontece nas unidades.</p></div><div className="dashboard-hero-actions"><Button variant="secondary" onClick={() => navigate('calendar')}>Abrir calendário</Button><Button onClick={onLogin}>Entrar</Button></div></section><div className="cards dashboard-metrics"><Card><strong className="metric">{state.games.length}</strong><p className="metric-label">Partidas na agenda</p></Card><Card><strong className="metric">{state.teams.length}</strong><p className="metric-label">Equipes participantes</p></Card><Card><strong className="metric">{state.tournaments.length}</strong><p className="metric-label">Campeonatos</p></Card><Card><strong className="metric">Aberto</strong><p className="metric-label">Consulta sem login</p></Card></div><Card className="dashboard-upcoming"><div className="section-title"><div><p className="eyebrow">AGENDA</p><h2>Próximos jogos</h2></div><button className="link-btn" onClick={() => navigate('calendar')}>Ver calendário →</button></div><GameList games={upcoming.slice(0, 6)} onDetails={game => setDetailId(game.id)} /></Card>{detailGame && <GameDetails game={detailGame} onClose={() => setDetailId(null)} />}</div>;
 }
 function PublicApp({ toggleTheme }: { toggleTheme: () => void }) {
   const [route, setRoute] = useState<Route>('dashboard'), [login, setLogin] = useState(false);

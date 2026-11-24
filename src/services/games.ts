@@ -39,6 +39,7 @@ export function leaveGame(state: DemoState, actorId: string, gameId: string): vo
 export function cancelGame(state: DemoState, actorId: string, gameId: string): void {
   requireTeacher(state, actorId); const game = state.games.find(item => item.id === gameId);
   if (!game) throw new Error('Jogo não encontrado.');
+  if (game.status === 'finalizado') throw new Error('Partidas finalizadas não podem ser canceladas.');
   game.status = 'cancelado'; audit(state, actorId, `cancelou o jogo de ${game.date} às ${game.time}`);
 }
 function updateTotals(state: DemoState, game: Game, multiplier: number): void {

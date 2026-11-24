@@ -60,19 +60,17 @@ export function generateTournamentBracket(state: DemoState, actorId: string, tou
   for (const match of rounds[0] ?? []) if (match.a && !match.b) match.winner = match.a;
   advanceTournamentByes(rounds);
   tournament.rounds = rounds;
+  tournament.status = 'em_andamento';
   audit(state, actorId, `gerou o chaveamento do campeonato ${tournament.name}`);
 }
 
 function advanceTournamentByes(rounds: Tournament['rounds']): void {
-  for (let roundIndex = 0; roundIndex < rounds.length - 1; roundIndex++) {
-    const current = rounds[roundIndex] ?? [], next = rounds[roundIndex + 1] ?? [];
-    current.forEach((match, index) => {
-      const destination = next[Math.floor(index / 2)];
-      if (!destination || !match.winner) return;
-      if (index % 2 === 0) destination.a = match.winner; else destination.b = match.winner;
-    });
-    for (const match of next) if (match.a && !match.b) match.winner = match.a;
-  }
+  const firstRound = rounds[0] ?? [], secondRound = rounds[1] ?? [];
+  firstRound.forEach((match, index) => {
+    const destination = secondRound[Math.floor(index / 2)];
+    if (!destination || !match.winner) return;
+    if (index % 2 === 0) destination.a = match.winner; else destination.b = match.winner;
+  });
 }
 
 export function saveTournamentMatchResult(state: DemoState, actorId: string, tournamentId: string, roundIndex: number, matchIndex: number, scoreA: number, scoreB: number): void {
@@ -95,7 +93,8 @@ export function saveTournamentMatchResult(state: DemoState, actorId: string, tou
         destination[side] = entrant; destination.scoreA = null; destination.scoreB = null; destination.winner = '';
       }
     });
-    for (const item of next) if (item.a && !item.b) item.winner = item.a;
   }
+  const finalMatch = tournament.rounds.at(-1)?.[0];
+  tournament.status = finalMatch?.winner ? 'finalizado' : 'em_andamento';
   audit(state, actorId, `atualizou o confronto ${roundIndex + 1}.${matchIndex + 1} do campeonato ${tournament.name}`);
 }

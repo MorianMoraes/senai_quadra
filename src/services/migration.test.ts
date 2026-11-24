@@ -3,9 +3,9 @@ import { seed } from '../demo/seed';
 import { DEMO_KEY, loadDemo } from '../demo/storage';
 import { createTournament, generateTournamentBracket, registerTeam, saveTournamentMatchResult } from './tournaments';
 import { registerGoogleStudent, registerStudent } from './auth';
-import { createGame, joinGame, saveScore } from './games';
+import { cancelGame, createGame, joinGame, saveScore } from './games';
 import { joinTeam, saveRoster } from './teams';
-import { addDays } from '../utils/format';
+import { addDays, userName } from '../utils/format';
 import { stateSchema } from '../types/models';
 import { inappropriateName, passwordScore } from '../utils/validation';
 
@@ -72,13 +72,16 @@ describe('Migração da demonstração', () => {
     const beforeT2 = { wins: state.teams[1]!.wins, losses: state.teams[1]!.losses, pointsFor: state.teams[1]!.pointsFor };
     expect(() => generateTournamentBracket(state, 'u4', tournament.id)).toThrow('professores');
     generateTournamentBracket(state, 'u2', tournament.id);
+    expect(tournament.status).toBe('em_andamento');
     expect(tournament.rounds.map(round => round.length)).toEqual([2, 1]);
     expect(tournament.rounds[1]?.[0]?.a).toBe('t1');
+    expect(tournament.rounds[1]?.[0]?.winner).toBe('');
     expect(() => saveTournamentMatchResult(state, 'u4', tournament.id, 0, 1, 2, 1)).toThrow('professores');
     saveTournamentMatchResult(state, 'u2', tournament.id, 0, 1, 2, 1);
     expect(tournament.rounds[1]?.[0]?.b).toBe('t2');
     saveTournamentMatchResult(state, 'u2', tournament.id, 1, 0, 3, 0);
     expect(tournament.rounds[1]?.[0]?.winner).toBe('t1');
+    expect(tournament.status).toBe('finalizado');
     expect(state.teams[0]!.wins).toBe(beforeT1.wins + 1);
     expect(state.teams[0]!.pointsFor).toBe(beforeT1.pointsFor + 3);
     saveTournamentMatchResult(state, 'u2', tournament.id, 1, 0, 1, 4);
@@ -86,8 +89,22 @@ describe('Migração da demonstração', () => {
     expect(state.teams[0]!.wins).toBe(beforeT1.wins);
     expect(state.teams[1]!.wins).toBe(beforeT2.wins + 2);
     generateTournamentBracket(state, 'u2', tournament.id);
+    expect(tournament.status).toBe('em_andamento');
     expect(state.teams[1]!.wins).toBe(beforeT2.wins);
     expect(state.teams[1]!.pointsFor).toBe(beforeT2.pointsFor);
+  });
+  it('não declara vencedor antecipado em chaveamento de 5 equipes', () => {
+    const state = structuredClone(seed); createTournament(state, 'u2', 'Copa 5', addDays(12));
+    const tournament = state.tournaments[0]!;
+    tournament.teamIds = ['t1', 't2', 't3', 't4', 't5'];
+    generateTournamentBracket(state, 'u2', tournament.id);
+    expect(tournament.rounds.map(round => round.length)).toEqual([4, 2, 1]);
+    expect(tournament.rounds[1]?.[1]?.a).toBe('t3');
+    expect(tournament.rounds[1]?.[1]?.b).toBe('');
+    expect(tournament.rounds[1]?.[1]?.winner).toBe('');
+    expect(tournament.rounds[2]?.[0]?.a).toBe('');
+    expect(tournament.rounds[2]?.[0]?.b).toBe('');
+    expect(tournament.rounds[2]?.[0]?.winner).toBe('');
   });
   it('vincula autenticação Google a perfil de aluno e nunca promove contas da equipe', () => {
     const state = structuredClone(seed);
@@ -155,5 +172,11 @@ describe('Migração da demonstração', () => {
     const state = structuredClone(seed);
     createGame(state, 'u2', { date: addDays(13), time: '14:00', team1: '', team2: '', description: '', notes: '', limit: 8, status: 'inscricoes', unit: 'Unidade de teste', court: 'Quadra de teste', calendar: 'Interclasses', duration: 60 });
     expect(state.games.at(-1)?.calendar).toBe('Interclasses');
+  });
+  it('não permite cancelar partida já finalizada e usa fallback de nome vazio', () => {
+    const state = structuredClone(seed);
+    expect(() => cancelGame(state, 'u2', 'g3')).toThrow('finalizadas');
+    state.users[0]!.name = '';
+    expect(userName(state, state.users[0]!.id)).toBe('Usuário');
   });
 });

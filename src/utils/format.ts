@@ -9,7 +9,10 @@ export function addDays(days: number): string {
 export const uid = (prefix: string): string => `${prefix}_${crypto.randomUUID()}`;
 export const fmtDate = (date: string): string => new Intl.DateTimeFormat('pt-BR').format(new Date(`${date}T12:00:00`));
 export const startTime = (date: string, time: string): number => new Date(`${date}T${time}:00`).getTime();
-export const userName = (state: DemoState, id: string): string => state.users.find(user => user.id === id)?.name ?? 'Usuário';
+export const userName = (state: DemoState, id: string): string => {
+  const name = state.users.find(user => user.id === id)?.name.trim();
+  return name || 'Usuário';
+};
 export const teamName = (state: DemoState, id: string): string => state.teams.find(team => team.id === id)?.name ?? 'Equipe aberta';
 export const roleLabel = (role: UserRole): string => ({ student: 'Jogador', teacher: 'Representante', director: 'Administrador' })[role];
 export function safePhoto(value: string): string {
