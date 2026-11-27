@@ -10,6 +10,7 @@ import App from './App';
 import { AppProvider } from './contexts/AppContext';
 
 const root = document.getElementById('app');
+try { document.documentElement.dataset.theme = localStorage.getItem('senaiSportsThemeV1') === 'dark' ? 'dark' : 'light'; } catch { document.documentElement.dataset.theme = 'light'; }
 if (!root) throw new Error('Elemento de montagem não encontrado.');
 createRoot(root).render(
   <StrictMode>

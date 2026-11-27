@@ -1,17 +1,49 @@
+import { useEffect, useState } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { Card, Empty } from '../components/ui';
+import { Button, Card, Empty } from '../components/ui';
 import { fmtDate, startTime, teamName, userName } from '../utils/format';
 import { SportLabel } from '../components/SportIcon';
 import { sports } from '../components/SportIcon';
 
+const championsGallery = Array.from({ length: 7 }, (_, index) => ({
+  src: `${import.meta.env.BASE_URL}assets/champions/galeria-${String(index + 1).padStart(2, '0')}.jpeg`,
+  alt: `Registro ${index + 1} da celebração e premiação dos Jogos do SESI`,
+}));
+
 export function HistoryPage() {
   const { state } = useApp();
-  const teams = state.teams.filter(team => team.status === 'ativa').sort((a, b) => b.wins - a.wins || (b.draws ?? 0) - (a.draws ?? 0) || b.pointsFor - a.pointsFor);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const champions = state.tournaments.filter(tournament => tournament.status === 'finalizado').sort((a,b) => b.date.localeCompare(a.date));
   const games = state.games.filter(game => game.status === 'finalizado').sort((a, b) => startTime(b.date, b.time) - startTime(a.date, a.time));
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setGalleryIndex(index => (index + 1) % championsGallery.length), 5000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const moveGallery = (offset: number) => setGalleryIndex(index => (index + offset + championsGallery.length) % championsGallery.length);
+  const activePhoto = championsGallery[galleryIndex]!;
+
   return <div className="performance-page">
-    <section aria-labelledby="history-ranking-title">
-      <div className="section-title"><div><p className="eyebrow">CLASSIFICAÇÃO</p><h2 id="history-ranking-title">Ranking de equipes</h2></div></div>
-      <Card>{teams.length ? <div className="table-wrap mobile-cards"><table><thead><tr><th>Posição</th><th>Equipe</th><th>Vitórias</th><th>Derrotas</th><th>Empates</th><th>Pontuação</th></tr></thead><tbody>{teams.map((team, index) => <tr key={team.id}><td data-label="Posição"><strong>{index + 1}</strong></td><td data-label="Equipe">{team.name}</td><td data-label="Vitórias">{team.wins}</td><td data-label="Derrotas">{team.losses}</td><td data-label="Empates">{team.draws ?? 0}</td><td data-label="Pontuação">{team.pointsFor}</td></tr>)}</tbody></table></div> : <Empty>Nenhuma equipe no ranking.</Empty>}</Card>
+    <section className="champions-gallery" aria-labelledby="champions-title">
+      <div className="section-title champions-gallery-heading">
+        <img className="champions-gallery-logo" src={`${import.meta.env.BASE_URL}assets/jogos-sesi-saude.jpeg`} alt="Jogos do SESI + Saúde" />
+        <div><p className="eyebrow">EDIÇÕES ANTERIORES</p><h2 id="champions-title">Galeria dos Campeões</h2></div>
+      </div>
+      <Card className="champions-photo-gallery">
+        <div className="champions-gallery-frame" aria-live="polite">
+          <img src={activePhoto.src} alt={activePhoto.alt} />
+          <button type="button" className="champions-gallery-arrow previous" aria-label="Foto anterior" onClick={() => moveGallery(-1)}>‹</button>
+          <button type="button" className="champions-gallery-arrow next" aria-label="Próxima foto" onClick={() => moveGallery(1)}>›</button>
+        </div>
+        <div className="champions-gallery-controls">
+          <span className="muted">Foto {galleryIndex + 1} de {championsGallery.length}</span>
+          <div className="champions-gallery-dots" role="group" aria-label="Escolher foto da galeria">
+            {championsGallery.map((photo, index) => <button key={photo.src} type="button" aria-label={`Mostrar foto ${index + 1}`} aria-current={galleryIndex === index ? 'true' : undefined} onClick={() => setGalleryIndex(index)} />)}
+          </div>
+        </div>
+      </Card>
+      {champions.length ? <div className="history-results">{champions.map(tournament=>{const winnerId=tournament.rounds.at(-1)?.[0]?.winner;const winner=state.teams.find(team=>team.id===winnerId);return <Card className="history-result" key={tournament.id}>{tournament.banner?<img className="tournament-banner" src={tournament.banner} alt={`Foto dos campeões ${winner?.name??''}`} loading="lazy"/>:<div className="champion-photo-placeholder">Foto da equipe campeã será adicionada</div>}<div className="section-title"><div><p className="eyebrow">{tournament.edition||new Date(tournament.date).getFullYear()}</p><h3>{tournament.name}</h3></div><strong className="history-winner">{winner?.name??'Campeão a confirmar'}</strong></div><p className="muted">{fmtDate(tournament.date)} · {tournament.teamIds.length} equipes</p><div className="btn-row">{tournament.pdfUrl?<a className="btn btn-secondary" href={tournament.pdfUrl} target="_blank" rel="noreferrer">Baixar PDF</a>:<Button variant="secondary" disabled>Baixar PDF · aguardando envio</Button>}<span className="muted">{tournament.pdfName||'Documento da edição será disponibilizado'}</span></div></Card>})}</div>:<Card><Empty>As edições concluídas aparecerão aqui junto com as fotos da galeria.</Empty></Card>}
     </section>
     <section className="performance-history" aria-labelledby="history-games-title">
       <div className="section-title"><div><p className="eyebrow">RESULTADOS PÚBLICOS</p><h2 id="history-games-title">Histórico de partidas</h2></div></div>

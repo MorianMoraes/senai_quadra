@@ -7,7 +7,7 @@ export function Button({ variant = 'primary', className = '', type = 'button', .
   return <button type={type} className={`btn btn-${variant} ${className}`} {...props} />;
 }
 export function Card({ children, className = '', style }: { children: ReactNode; className?: string; style?: CSSProperties }) { return <section className={`card ${className}`} style={style}>{children}</section>; }
-export function Logo() { return <div className="logo"><div className="logo-mark">S</div><span>SENAI Sports</span></div>; }
+export function Logo() { return <div className="logo"><img className="logo-mark" src={`${import.meta.env.BASE_URL}assets/jogos-sesi-saude.jpeg`} alt="" /><span>Jogos do SESI + Saúde</span></div>; }
 export function Avatar({ user }: { user: User }) {
   const photo = safePhoto(user.photo);
   const initials = (user.name.trim() || 'U').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();

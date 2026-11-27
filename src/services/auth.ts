@@ -56,6 +56,8 @@ export function registerGoogleStudent(state: DemoState, identity: GoogleIdentity
 export function authenticate(state: DemoState, email: string, password: string): User {
   const user = state.users.find(item => item.email.toLowerCase() === email.trim().toLowerCase() && item.password === password);
   if (!user) throw new Error('E-mail ou senha inválidos.');
+  if (user.approvalStatus === 'pending') throw new Error('Sua solicitação ainda aguarda aprovação do diretor.');
+  if (user.approvalStatus === 'rejected') throw new Error('Sua solicitação de acesso foi recusada. Entre em contato com a organização.');
   return user;
 }
 
@@ -81,14 +83,20 @@ export function requireActor(state: DemoState, actorId: string): User {
 }
 export function requireTeacher(state: DemoState, actorId: string): User {
   const user = requireActor(state, actorId);
-  if (user.role !== 'teacher' && user.role !== 'director') throw new Error('Somente professores e administradores podem realizar esta ação.');
+  if (user.role !== 'teacher' && user.role !== 'director' && user.role !== 'sesi') throw new Error('Somente professores e administradores podem realizar esta ação.');
   return user;
 }
 export function requireDirector(state: DemoState, actorId: string): User {
   const user = requireActor(state, actorId);
-  if (user.role !== 'director') throw new Error('Somente administradores podem realizar esta ação.');
+  if (user.role !== 'director' && user.role !== 'sesi') throw new Error('Somente administradores podem realizar esta ação.');
   return user;
 }
 export function audit(state: DemoState, actorId: string, action: string): void {
   state.logs.unshift({ id: uid('l'), actorId, action, createdAt: new Date().toISOString() });
+}
+
+export function requireSesi(state: DemoState, actorId: string): User {
+  const user = requireActor(state, actorId);
+  if (user.role !== 'sesi') throw new Error('Somente o SESI pode administrar chaveamentos.');
+  return user;
 }

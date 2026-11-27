@@ -15,11 +15,21 @@ export function createTeam(state: DemoState, actorId: string, name: string, teac
   const team: Team = { id: uid('t'), name: requireName(name), sport, status: actor.role === 'student' ? 'pendente' : 'ativa', creatorId: actorId, teacherIds: teacherId ? [teacherId] : [], memberIds: [actorId], reserveIds: [], wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0 };
   state.teams.push(team); audit(state, actorId, `criou a equipe ${team.name}`); return team;
 }
+export function updateTeam(state: DemoState, actorId: string, teamId: string, name: string, logoUrl: string): void {
+  const actor = requireActor(state, actorId), team = state.teams.find(item => item.id === teamId);
+  if (!team) throw new Error('Equipe não encontrada.');
+  if (actor.role !== 'sesi' && actor.role !== 'director' && !(actor.role === 'teacher' && (team.creatorId === actorId || team.teacherIds.includes(actorId)))) throw new Error('Você não pode editar esta equipe.');
+  const normalizedName = requireName(name);
+  if (state.teams.some(item => item.id !== teamId && item.name.toLocaleLowerCase() === normalizedName.toLocaleLowerCase())) throw new Error('Já existe uma equipe com este nome.');
+  const crest = logoUrl.trim();
+  if (crest) { let parsed: URL; try { parsed = new URL(crest); } catch { throw new Error('Informe um link válido para o escudo.'); } if (!['https:','http:'].includes(parsed.protocol)) throw new Error('O link do escudo deve usar HTTP ou HTTPS.'); }
+  team.name = normalizedName; team.logoUrl = crest;
+  audit(state, actorId, `editou os dados da equipe ${team.name}`);
+}
 export function joinTeam(state: DemoState, actorId: string, teamId: string): void {
   const actor = requireActor(state, actorId), team = state.teams.find(item => item.id === teamId);
   if (!team || actor.role !== 'student' || team.status !== 'ativa') throw new Error('Esta equipe não está disponível para entrada.');
   if (team.memberIds.includes(actorId) || team.reserveIds.includes(actorId)) throw new Error('Você já faz parte desta equipe.');
-  if (team.memberIds.length >= 6) throw new Error('A equipe já atingiu o limite de titulares.');
   if (state.teams.some(item => item.id !== teamId && (item.memberIds.includes(actorId) || item.reserveIds.includes(actorId)))) throw new Error('Você já está inscrito em outra equipe.');
   team.memberIds.push(actorId); audit(state, actorId, `entrou na equipe ${team.name}`);
 }
@@ -28,18 +38,18 @@ export function saveRoster(state: DemoState, actorId: string, teamId: string, me
   if (!team || (team.creatorId !== actorId && !(actor.role === 'teacher' && team.teacherIds.includes(actorId)))) throw new Error('Somente o líder ou professor responsável pode montar o time.');
   if (state.tournaments.some(tournament => tournament.teamIds.includes(teamId))) throw new Error('O elenco está fechado porque o time já está inscrito em campeonato.');
   const all = [...memberIds, ...reserveIds];
-  if (memberIds.length > 6 || reserveIds.length > 4 || new Set(all).size !== all.length || !memberIds.includes(team.creatorId)) throw new Error('Selecione até 6 titulares incluindo o líder e até 4 reservas diferentes.');
+  if (new Set(all).size !== all.length || !memberIds.includes(team.creatorId)) throw new Error('Mantenha o responsável na equipe e não repita jogadores.');
   if (all.some(id => !state.users.some(user => user.id === id && user.role !== 'director' && !user.suspended))) throw new Error('Selecione apenas alunos ou professores ativos.');
   team.memberIds = [...memberIds]; team.reserveIds = [...reserveIds]; audit(state, actorId, `atualizou o elenco de ${team.name}`);
 }
 export function approveTeam(state: DemoState, actorId: string, teamId: string): void {
   const actor = requireActor(state, actorId), team = state.teams.find(item => item.id === teamId);
-  if (!team || actor.role !== 'director') throw new Error('Somente administradores podem aprovar equipes.');
+  if (!team || actor.role !== 'director' && actor.role !== 'sesi') throw new Error('Somente administradores podem aprovar equipes.');
   team.status = 'ativa'; audit(state, actorId, `aprovou a equipe ${team.name}`);
 }
 export function deleteTeam(state: DemoState, actorId: string, teamId: string): void {
   const actor = requireActor(state, actorId);
-  if (actor.role !== 'director') throw new Error('Somente administradores podem excluir equipes.');
+  if (actor.role !== 'director' && actor.role !== 'sesi') throw new Error('Somente administradores podem excluir equipes.');
   if (state.tournaments.some(item => item.teamIds.includes(teamId))) throw new Error('Uma equipe inscrita em campeonato não pode ser excluída.');
   state.teams = state.teams.filter(team => team.id !== teamId); audit(state, actorId, 'excluiu uma equipe');
 }

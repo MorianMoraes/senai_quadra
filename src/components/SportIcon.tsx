@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Sport } from '../types/models';
 
-export const sports: { id: Sport; name: string; category: 'quadra' | 'mesa'; icon: ReactNode }[] = [
+export const sports: { id: Sport; name: string; category: 'quadra' | 'mesa' | 'verao'; icon: ReactNode }[] = [
   { id: 'futebol', name: 'Futebol', category: 'quadra', icon: <><circle cx="12" cy="12" r="9" /><path d="m12 7 3 2v4l-3 2-3-2V9l3-2ZM9 9 5 7m10 2 4-2m-10 8-2 4m8-4 2 4M12 7V3" /></> },
   { id: 'volei', name: 'Vôlei', category: 'quadra', icon: <><circle cx="12" cy="12" r="9" /><path d="M4.6 7.2c4.7.3 8.6 2.2 11.2 5.5M7 20c.8-4.6 3.1-8.2 7.2-10.5M19.4 6.8c-4.4 2-7.1 5.2-8.1 9.7M3.3 12.5c3.4 1.4 5.3 4.1 5.7 7.6m6-16.7c-.6 3.7.5 6.5 3.5 8.5" /></> },
   { id: 'futsal', name: 'Futsal', category: 'quadra', icon: <><circle cx="12" cy="12" r="9" /><path d="m12 7 3 2v4l-3 2-3-2V9l3-2ZM9 9 5 7m10 2 4-2m-10 8-2 4m8-4 2 4M12 7V3" /><path d="M3 12h2m14 0h2" /></> },
@@ -15,18 +15,31 @@ export const sports: { id: Sport; name: string; category: 'quadra' | 'mesa'; ico
   { id: 'outra-quadra', name: 'Outra modalidade', category: 'quadra', icon: <><circle cx="12" cy="12" r="9" /><path d="M7 7l10 10m0-10L7 17M3 12h4m10 0h4" /></> },
   { id: 'outro-tabuleiro', name: 'Outro jogo de mesa', category: 'mesa', icon: <><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M8 8h.01M12 8h.01M16 8h.01M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01" /></> },
 ];
+const extraSportRows: { id: Sport; name: string; category: 'quadra' | 'mesa' | 'verao' }[] = [
+  { id: 'futebol-society', name: 'Futebol Society', category: 'quadra' }, { id: 'padel', name: 'Padel', category: 'quadra' },
+  { id: 'volei-de-praia', name: 'Vôlei de Praia', category: 'verao' }, { id: 'beach-tennis', name: 'Beach Tennis', category: 'verao' },
+  { id: 'futevolei', name: 'Futevôlei', category: 'verao' }, { id: 'futebol-de-areia', name: 'Futebol de Areia', category: 'verao' },
+  { id: 'domino', name: 'Dominó', category: 'mesa' }, { id: 'general', name: 'General', category: 'mesa' },
+  { id: 'truco', name: 'Truco', category: 'mesa' }, { id: 'canastra', name: 'Canastra', category: 'mesa' },
+  { id: 'tenis-de-mesa', name: 'Tênis de Mesa', category: 'mesa' },
+];
+const extraSports = extraSportRows.map(item => ({ ...item, icon: <><circle cx="12" cy="12" r="8"/><path d="M8 12h8m-4-4v8"/></> }));
+export const availableSports = [
+  ...sports.filter(item => !['queimada', 'ludo', 'xadrez', 'dama', 'outra-quadra', 'outro-tabuleiro', 'pingue-pongue'].includes(item.id)).map(item => item.id === 'futebol' ? { ...item, name: 'Futebol Society' } : item),
+  ...extraSports,
+].filter((item, index, all) => all.findIndex(candidate => candidate.id === item.id) === index);
 
 export function SportIcon({ sport, className = '' }: { sport: Sport; className?: string }) {
-  const selected = sports.find(item => item.id === sport) ?? sports.find(item => item.id === 'outra-quadra')!;
+  const selected = [...sports, ...extraSports].find(item => item.id === sport) ?? sports.find(item => item.id === 'outra-quadra')!;
   return <svg className={`sport-icon ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label={selected.name}>{selected.icon}</svg>;
 }
 
 export function SportLabel({ sport, className = '' }: { sport: Sport; className?: string }) {
-  const selected = sports.find(item => item.id === sport) ?? sports.find(item => item.id === 'outra-quadra')!;
+  const selected = [...sports, ...extraSports].find(item => item.id === sport) ?? sports.find(item => item.id === 'outra-quadra')!;
   return <span className={`sport-label ${className}`}><SportIcon sport={selected.id} /><span>{selected.name}</span></span>;
 }
 
-export function SportChoiceGroup({ name, category }: { name: string; category?: 'quadra' | 'mesa' }) {
-  const choices = category ? sports.filter(item => item.category === category) : sports;
+export function SportChoiceGroup({ name, category }: { name: string; category?: 'quadra' | 'mesa' | 'verao' }) {
+  const choices = category ? availableSports.filter(item => item.category === category) : availableSports;
   return <fieldset className="sport-choices"><legend>Modalidade</legend><div className="sport-choice-grid">{choices.map((sport, index) => <label className="sport-choice" key={sport.id}><input type="radio" name={name} value={sport.id} defaultChecked={index === 0} required /><span className="sport-choice-copy"><SportIcon sport={sport.id} /><span>{sport.name}</span></span></label>)}</div></fieldset>;
 }

@@ -1,21 +1,22 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { DemoState, User } from '../types/models';
 import { DEMO_KEY, loadDemo, loadSession, saveDemo, saveSession } from '../demo/storage';
-import { authenticate, registerStudent } from '../services/auth';
+import { authenticate } from '../services/auth';
 import { supabase } from '../lib/supabaseClient';
 import { stateSchema } from '../types/models';
 import { passwordScore, requireName } from '../utils/validation';
+import { uid } from '../utils/format';
 
 interface AppContextValue {
   state: DemoState; user: User | null; message: { text: string; error: boolean } | null;
   loading: boolean; remote: boolean; dismiss: () => void; notify: (text: string, error?: boolean) => void;
   act: (action: (draft: DemoState, actorId: string) => void, success?: string) => boolean;
   actAsync: (action: (draft: DemoState, actorId: string) => void, success?: string) => Promise<boolean>;
-  login: (email: string, password: string) => Promise<boolean>; signUp: (name: string, email: string, turma: string, password: string, confirm: string) => Promise<boolean>; logout: () => void;
+  login: (email: string, password: string) => Promise<boolean>; signUp: (name: string, email: string, turma: string, password: string, confirm: string) => Promise<boolean>; reviewTeacherRequest: (userId: string, approve: boolean) => Promise<boolean>; logout: () => void;
   migrateLocalData: () => Promise<boolean>;
 }
 const AppContext = createContext<AppContextValue | null>(null);
-const emptyState: DemoState = { users: [], teams: [], games: [], tournaments: [], stats: [], logs: [] };
+const emptyState: DemoState = { users: [], teams: [], games: [], tournaments: [], stats: [], standings: [], cards: [], scorers: [], tournamentNotes: [], players: [], logs: [], accountRequests: [] };
 
 function errorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) return error.message;
@@ -38,9 +39,10 @@ function localizeAuthError(msg: string): string {
 
 function profileFromRow(row: Record<string, unknown>): User {
   return {
-    id: String(row.id), role: row.role === 'director' || row.role === 'teacher' ? row.role : 'student',
+    id: String(row.id), role: row.role === 'sesi' || row.role === 'director' || row.role === 'teacher' ? row.role : 'student',
     name: String(row.name ?? row.nome ?? ''), email: String(row.email ?? ''), password: '', turma: String(row.turma ?? ''),
     idade: Number(row.idade ?? 0), matricula: String(row.matricula ?? ''), photo: String(row.photo ?? row.avatar_url ?? ''), suspended: Boolean(row.suspended),
+    approvalStatus: row.approval_status === 'pending' || row.approval_status === 'rejected' ? row.approval_status : 'approved',
   };
 }
 
@@ -85,7 +87,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         profileRows = exists
           ? profileRows.map(row => row.id === own.data.id ? { ...row, ...mergedOwn } : row)
           : [...profileRows, mergedOwn];
-        if (own.data.role === 'director') {
+      if (own.data.role === 'director' || own.data.role === 'sesi') {
           const [allProfiles, logsResult] = await Promise.all([
             supabase.from('profiles').select('*'),
             supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(500),
@@ -97,11 +99,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     const remoteProfiles = profileRows.map(row => profileFromRow(row));
     const payload = (sports.data?.payload ?? {}) as Record<string, unknown>;
+    const [playerResult, noteResult] = authUser ? await Promise.all([
+      supabase.from('team_players_private').select('*'),
+      supabase.from('tournament_team_notes').select('*'),
+    ]) : [{ data: [], error: null }, { data: [], error: null }];
+    if (playerResult.error) throw playerResult.error;
+    if (noteResult.error) throw noteResult.error;
+    let accountRequests: Record<string, unknown>[] = [];
+    if (authUser && profileRows.find(row => row.id === authUser.id)?.role === 'director') {
+      const requestResult = await supabase.from('account_requests').select('*').order('created_at', { ascending: false });
+      if (requestResult.error) throw requestResult.error;
+      accountRequests = (requestResult.data ?? []) as Record<string, unknown>[];
+    }
     const next = stateSchema.parse({
       ...emptyState,
       ...payload,
       users: remoteProfiles,
+      players: (playerResult.data ?? []).map(row => ({ id: String(row.id), teamId: String(row.team_id), fullName: String(row.full_name), birthDate: String(row.birth_date), cpf: String(row.cpf), enrollment: String(row.enrollment), createdBy: String(row.created_by) })),
+      tournamentNotes: (noteResult.data ?? []).map(row => ({ id: String(row.id), tournamentId: String(row.tournament_id), teamId: String(row.team_id), authorId: String(row.author_id), text: String(row.note), createdAt: String(row.created_at), updatedAt: String(row.updated_at) })),
       logs: logRows.map(row => ({ id: String(row.id), actorId: String(row.actor_id), action: String(row.action), createdAt: String(row.created_at) })),
+      accountRequests: accountRequests.map(row => ({ id: String(row.id), userId: String(row.user_id), name: String(row.responsible_name), teamName: String(row.team_name), email: String(row.email), status: String(row.status), createdAt: String(row.created_at), reviewedAt: String(row.reviewed_at ?? ''), reviewedBy: String(row.reviewed_by ?? '') })),
     });
     setState(next);
   }
@@ -129,7 +146,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         window.setTimeout(() => { void loadRemoteState().catch(error => notify(errorMessage(error, 'Erro ao carregar dados.'), true)); }, 0);
       }
     });
-    return () => { alive = false; subscription.unsubscribe(); };
+    const stateChannel = supabase.channel('sports-state-live-sync').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sports_state' }, () => {
+      window.setTimeout(() => { void loadRemoteState().catch(error => notify(errorMessage(error, 'Erro ao sincronizar os dados.'))); }, 80);
+    }).on('postgres_changes', { event: '*', schema: 'public', table: 'team_players_private' }, () => {
+      window.setTimeout(() => { void loadRemoteState().catch(error => notify(errorMessage(error, 'Erro ao sincronizar jogadores.'))); }, 80);
+    }).on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_team_notes' }, () => {
+      window.setTimeout(() => { void loadRemoteState().catch(error => notify(errorMessage(error, 'Erro ao sincronizar observações.'))); }, 80);
+    }).subscribe();
+    return () => { alive = false; subscription.unsubscribe(); void supabase!.removeChannel(stateChannel); };
   }, []);
 
   const user = useMemo(() => state.users.find(item => item.id === userId) ?? null, [state.users, userId]);
@@ -143,7 +167,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const executeRemote = async (): Promise<boolean> => {
         if (user.role === 'student') {
           const newTeams = draft.teams.filter(team => !state.teams.some(old => old.id === team.id));
-          const otherStateSame = same(draft.games, state.games) && same(draft.tournaments, state.tournaments) && same(draft.stats, state.stats);
+          const otherStateSame = same(draft.games, state.games) && same(draft.tournaments, state.tournaments) && same(draft.stats, state.stats) && same(draft.standings, state.standings) && same(draft.cards, state.cards) && same(draft.scorers, state.scorers);
           if (newTeams.length === 1 && draft.teams.length === state.teams.length + 1 && otherStateSame && state.teams.every(old => same(draft.teams.find(item => item.id === old.id), old)) && newTeams[0]?.creatorId === user.id) {
             const newTeam = newTeams[0];
             const { error } = await supabase!.rpc('player_create_team', { team_id: newTeam.id, team_name: newTeam.name, team_sport: newTeam.sport });
@@ -185,7 +209,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return previous && (previous.suspended !== item.suspended || previous.role !== item.role);
         });
         if (changedAccount) {
-          if (user.role !== 'director' || (changedAccount.role !== 'student' && changedAccount.role !== 'teacher')) throw new Error('Somente administradores podem alterar o acesso desta conta.');
+          if ((user.role !== 'director' && user.role !== 'sesi') || (changedAccount.role !== 'student' && changedAccount.role !== 'teacher')) throw new Error('Somente administradores podem alterar o acesso desta conta.');
           const { error } = await supabase!.rpc('set_profile_suspension', { target_id: changedAccount.id, next_suspended: changedAccount.suspended });
           if (error) throw error;
           const logAction = draft.logs[0]?.action ?? success ?? 'Alterou o acesso de uma conta';
@@ -203,19 +227,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (success) notify(success);
           return true;
         }
-        const sportsUnchanged = same(draft.teams, state.teams) && same(draft.games, state.games) && same(draft.tournaments, state.tournaments) && same(draft.stats, state.stats);
+        const sportsUnchanged = same(draft.teams, state.teams) && same(draft.games, state.games) && same(draft.tournaments, state.tournaments) && same(draft.stats, state.stats) && same(draft.standings, state.standings) && same(draft.cards, state.cards) && same(draft.scorers, state.scorers);
+        if (!same(draft.players, state.players)) {
+          const removed = state.players.filter(player => !draft.players.some(item => item.id === player.id));
+          if (removed.length) {
+            const { error } = await supabase!.from('team_players_private').delete().in('id', removed.map(player => player.id));
+            if (error) throw error;
+          }
+          const changed = draft.players.filter(player => !same(state.players.find(item => item.id === player.id), player));
+          if (changed.length) {
+            const { error } = await supabase!.from('team_players_private').upsert(changed.map(player => ({ id: player.id, team_id: player.teamId, full_name: player.fullName, birth_date: player.birthDate, cpf: player.cpf, enrollment: player.enrollment, created_by: player.createdBy })));
+            if (error) throw error;
+          }
+        }
+        if (!same(draft.tournamentNotes, state.tournamentNotes)) {
+          const removed = state.tournamentNotes.filter(note => !draft.tournamentNotes.some(item => item.id === note.id));
+          if (removed.length) {
+            const { error } = await supabase!.from('tournament_team_notes').delete().in('id', removed.map(note => note.id));
+            if (error) throw error;
+          }
+          const changed = draft.tournamentNotes.filter(note => !same(state.tournamentNotes.find(item => item.id === note.id), note));
+          if (changed.length) {
+            const { error } = await supabase!.from('tournament_team_notes').upsert(changed.map(note => ({ id: note.id, tournament_id: note.tournamentId, team_id: note.teamId, author_id: note.authorId, note: note.text, updated_at: note.updatedAt })));
+            if (error) throw error;
+          }
+        }
         if (sportsUnchanged) {
+          if (!same(draft.players, state.players) || !same(draft.tournamentNotes, state.tournamentNotes)) await loadRemoteState();
           if (success) notify(success);
           return true;
         }
         // Never persist authentication credentials or administrative logs in the shared sports document.
-        const { users: _users, logs: _logs, ...payload } = draft;
+        const { users: _users, logs: _logs, players: _players, ...payload } = draft;
         const { error } = await supabase!.rpc('save_sports_state', { next_payload: payload });
         if (error) throw error;
         const logAction = draft.logs[0]?.action ?? success ?? 'Atualizou dados esportivos';
         const logResult = await supabase!.from('activity_logs').insert({ actor_id: user.id, action: logAction });
-        if (logResult.error && user.role === 'director') notify(logResult.error.message, true);
-        if (user.role === 'director') await loadRemoteState();
+        if (logResult.error && (user.role === 'director' || user.role === 'sesi')) notify(logResult.error.message, true);
+        if (user.role === 'director' || user.role === 'sesi') await loadRemoteState();
         else setState(draft);
         if (success) notify(success);
         return true;
@@ -249,6 +298,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (profileError) throw profileError;
       const account = profileFromRow({ ...row, email: data.user.email });
       if (account.suspended) { await supabase.auth.signOut(); throw new Error('Esta conta está suspensa.'); }
+      if (account.approvalStatus === 'pending') { await supabase.auth.signOut(); throw new Error('Sua solicitação ainda aguarda aprovação do diretor.'); }
+      if (account.approvalStatus === 'rejected') { await supabase.auth.signOut(); throw new Error('Sua solicitação de acesso foi recusada. Entre em contato com a organização.'); }
       setState(current => ({ ...current, users: [...current.users.filter(item => item.id !== account.id), account] }));
       setUserId(account.id);
       await loadRemoteState();
@@ -267,26 +318,52 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!passwordScore(password).valid) throw new Error('A senha ainda não atende a todos os requisitos.');
       const cleanName = requireName(name), cleanEmail = email.trim().toLowerCase(), cleanTurma = turma.trim();
       if (!cleanEmail || !cleanEmail.includes('@')) throw new Error('Informe um e-mail válido.');
-      if (!cleanTurma) throw new Error('Informe sua turma.');
+      if (!cleanTurma) throw new Error('Informe a equipe ou empresa.');
       if (!supabase) {
         const draft = structuredClone(state);
-        const account = registerStudent(draft, { name, email, turma, password, confirm, photo: '' });
-        saveDemo(draft); saveSession(account.id); setState(draft); setUserId(account.id); setMessage({ text: 'Conta de jogador criada.', error: false });
+        if (draft.users.some(item => item.email.toLowerCase() === cleanEmail)) throw new Error('Este e-mail já está cadastrado.');
+        const account: User = { id: uid('u'), role: 'student', name: cleanName, email: cleanEmail, password, turma: cleanTurma, idade: 0, matricula: '', photo: '', suspended: false, approvalStatus: 'pending' };
+        draft.users.push(account);
+        draft.accountRequests.unshift({ id: uid('request'), userId: account.id, name: cleanName, teamName: cleanTurma, email: cleanEmail, status: 'pending', createdAt: new Date().toISOString(), reviewedAt: '', reviewedBy: '' });
+        saveDemo(draft); setState(draft); setMessage({ text: 'Solicitação criada. Aguarde a aprovação do diretor.', error: false });
         return true;
       }
       const { data, error } = await supabase.auth.signUp({
         email: cleanEmail, password,
-        options: { data: { name: cleanName, turma: cleanTurma }, emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}?email-confirmed=1` },
+        options: { data: { name: cleanName, turma: cleanTurma, registration_type: 'teacher' }, emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}?email-confirmed=1` },
       });
       if (error) throw error;
       if (!data.user) throw new Error('O Supabase não confirmou a criação da conta.');
       if (data.session) {
-        setUserId(data.user.id);
+        await supabase.auth.signOut();
+        setUserId(null);
         await loadRemoteState();
-        notify('Conta de jogador criada.');
+        notify('Solicitação criada. Aguarde a aprovação do diretor.');
       } else {
-        notify('Conta criada. Confira seu e-mail para confirmar o cadastro e depois entre no sistema.');
+        notify('Solicitação criada. Confirme seu e-mail; depois, aguarde a aprovação do diretor.');
       }
+      return true;
+    } catch (error) { return report(error); }
+  }
+  async function reviewTeacherRequest(targetUserId: string, approve: boolean): Promise<boolean> {
+    if (user?.role !== 'director') return report(new Error('Somente o diretor pode aprovar ou recusar solicitações.'));
+    try {
+      if (!supabase) {
+        const draft = structuredClone(state), request = draft.accountRequests.find(item => item.userId === targetUserId && item.status === 'pending');
+        const account = draft.users.find(item => item.id === targetUserId);
+        if (!request || !account) throw new Error('Solicitação pendente não encontrada.');
+        request.status = approve ? 'approved' : 'rejected'; request.reviewedAt = new Date().toISOString(); request.reviewedBy = user.id;
+        account.role = approve ? 'teacher' : 'student'; account.approvalStatus = approve ? 'approved' : 'rejected';
+        draft.logs.unshift({ id: uid('log'), actorId: user.id, action: `${approve ? 'Aprovou' : 'Recusou'} acesso de ${account.name}`, createdAt: new Date().toISOString() });
+        saveDemo(draft); setState(draft); notify(approve ? 'Acesso de representante aprovado.' : 'Solicitação recusada.'); return true;
+      }
+      const { error } = await supabase.rpc('review_teacher_request', { target_user: targetUserId, decision: approve ? 'approved' : 'rejected' });
+      if (error) throw error;
+      await loadRemoteState();
+      if (!approve) { notify('Solicitação recusada.'); return true; }
+      const email = await supabase.functions.invoke('notify-account-approved', { body: { user_id: targetUserId } });
+      if (email.error) notify('Acesso aprovado. O e-mail não foi enviado; confira a configuração da função de e-mail.', true);
+      else notify('Acesso de representante aprovado e e-mail enviado.');
       return true;
     } catch (error) { return report(error); }
   }
@@ -301,7 +378,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setMessage(null);
   }
   async function migrateLocalData(): Promise<boolean> {
-    if (!supabase || user?.role !== 'director') return report(new Error('Somente um administrador conectado ao Supabase pode migrar dados locais.'));
+    if (!supabase || user?.role !== 'sesi') return report(new Error('Somente um administrador conectado ao Supabase pode migrar dados locais.'));
     try {
       if (!localStorage.getItem(DEMO_KEY) && !localStorage.getItem('senaiSportsDemoV1')) throw new Error('Não há dados locais para migrar neste navegador.');
       const local = loadDemo(localStorage);
@@ -340,6 +417,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   if (loading) return <main className="auth-card-wrap"><div className="card" role="status">Conectando ao Supabase…</div></main>;
   if (localInit.error) return <main className="auth-card-wrap"><div className="card"><h1>Dados locais indisponíveis</h1><p role="alert">{localInit.error}</p><button className="btn btn-primary" onClick={() => location.reload()}>Tentar novamente</button></div></main>;
   if (initialError) return <main className="auth-card-wrap"><div className="card"><h1>Dados indisponíveis</h1><p role="alert">{initialError}</p><button className="btn btn-primary" onClick={() => location.reload()}>Tentar novamente</button></div></main>;
-  return <AppContext.Provider value={{ state, user, message, loading, remote, dismiss: () => setMessage(null), notify, act, actAsync, login, signUp, logout, migrateLocalData }}>{children}</AppContext.Provider>;
+  return <AppContext.Provider value={{ state, user, message, loading, remote, dismiss: () => setMessage(null), notify, act, actAsync, login, signUp, reviewTeacherRequest, logout, migrateLocalData }}>{children}</AppContext.Provider>;
 }
 export function useApp(): AppContextValue { const context = useContext(AppContext); if (!context) throw new Error('AppProvider não encontrado.'); return context; }

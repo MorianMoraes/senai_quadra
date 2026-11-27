@@ -3,7 +3,7 @@ import type { Theme } from '../types/models';
 
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
-    try { return localStorage.getItem('senaiSportsThemeV1') === 'light' ? 'light' : 'dark'; } catch { return 'dark'; }
+    try { return localStorage.getItem('senaiSportsThemeV1') === 'dark' ? 'dark' : 'light'; } catch { return 'light'; }
   });
   useEffect(() => {
     document.documentElement.dataset.theme = theme;

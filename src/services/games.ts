@@ -1,14 +1,19 @@
 import type { DemoState, Game, MatchSet, Sport } from '../types/models';
-import { audit, requireActor, requireTeacher } from './auth';
+import { audit, requireActor, requireDirector } from './auth';
 import { startTime, uid } from '../utils/format';
 import { sportCategory } from '../utils/sports';
 
-export type NewGame = Pick<Game, 'date' | 'time' | 'team1' | 'team2' | 'description' | 'notes' | 'limit' | 'status'> & { sport?: Sport; unit?: string; court?: string; calendar?: string; duration?: number };
+export type NewGame = Pick<Game, 'date' | 'time' | 'team1' | 'team2' | 'description' | 'notes' | 'limit' | 'status' | 'tournamentId'> & { sport?: Sport; unit?: string; court?: string; calendar?: string; duration?: number; reportUrl?: string; reportName?: string };
 export const MAX_GAME_PLAYERS = 20;
 export const GAME_DURATION_MINUTES = 60;
 export function createGame(state: DemoState, actorId: string, input: NewGame): void {
-  requireTeacher(state, actorId);
-  const sport = input.sport ?? 'volei', category = sportCategory(sport);
+  const actor = requireActor(state, actorId);
+  if (actor.role !== 'director') throw new Error('Somente o diretor pode criar jogos.');
+  const tournament = state.tournaments.find(item => item.id === input.tournamentId);
+  if (!tournament || tournament.status === 'finalizado' || !tournament.teamIds.length) throw new Error('Crie um campeonato e inscreva as equipes antes de cadastrar um jogo.');
+  if (!tournament.teamIds.includes(input.team1) || !tournament.teamIds.includes(input.team2) || input.team1 === input.team2) throw new Error('Escolha duas equipes diferentes inscritas neste campeonato.');
+  if (input.date < (tournament.startDate || tournament.date) || (tournament.endDate && input.date > tournament.endDate)) throw new Error('A data do jogo deve estar dentro do período do campeonato.');
+  const sport = tournament.sport ?? input.sport ?? 'volei', category = sportCategory(sport);
   const duration = input.duration ?? GAME_DURATION_MINUTES;
   if (!Number.isInteger(duration) || duration < 0 || (category === 'quadra' && duration < GAME_DURATION_MINUTES)) throw new Error(`Jogos de quadra precisam durar pelo menos ${GAME_DURATION_MINUTES} minutos.`);
   const court = input.court?.trim() ?? '';
@@ -21,7 +26,7 @@ export function createGame(state: DemoState, actorId: string, input: NewGame): v
   if (input.team1 && input.team1 === input.team2) throw new Error('Escolha equipes diferentes.');
   if (state.games.some(game => game.status !== 'cancelado' && (game.unit ?? '') === input.unit!.trim() && game.court === court && start < startTime(game.date, game.time) + (game.duration || GAME_DURATION_MINUTES) * 60_000 && end > startTime(game.date, game.time))) throw new Error('Já existe um evento neste espaço e horário.');
   const calendar = input.calendar?.trim() || 'geral';
-  state.games.push({ ...input, sport, id: uid('g'), duration, unit: input.unit.trim(), court, calendar, participantIds: [], sets: [], createdBy: actorId });
+  state.games.push({ ...input, sport, id: uid('g'), duration, unit: input.unit.trim(), court, calendar, reportUrl: input.reportUrl ?? '', reportName: input.reportName ?? '', participantIds: [], sets: [], createdBy: actorId });
   audit(state, actorId, `criou um jogo em ${input.date} às ${input.time}`);
 }
 export function joinGame(state: DemoState, actorId: string, gameId: string): void {
@@ -37,7 +42,7 @@ export function leaveGame(state: DemoState, actorId: string, gameId: string): vo
   game.participantIds = game.participantIds.filter(id => id !== actorId);
 }
 export function cancelGame(state: DemoState, actorId: string, gameId: string): void {
-  requireTeacher(state, actorId); const game = state.games.find(item => item.id === gameId);
+  requireDirector(state, actorId); const game = state.games.find(item => item.id === gameId);
   if (!game) throw new Error('Jogo não encontrado.');
   if (game.status === 'finalizado') throw new Error('Partidas finalizadas não podem ser canceladas.');
   game.status = 'cancelado'; audit(state, actorId, `cancelou o jogo de ${game.date} às ${game.time}`);
@@ -54,7 +59,7 @@ function updateTotals(state: DemoState, game: Game, multiplier: number): void {
   winner.wins += multiplier; loser.losses += multiplier;
 }
 export function saveScore(state: DemoState, actorId: string, gameId: string, sets: MatchSet[]): void {
-  requireTeacher(state, actorId); const game = state.games.find(item => item.id === gameId);
+  requireDirector(state, actorId); const game = state.games.find(item => item.id === gameId);
   if (!game || game.status === 'cancelado') throw new Error('Jogo indisponível.');
   if (!sets.length || sets.length > 3) throw new Error('Informe de 1 a 3 sets.');
   if (sets.some(set => !Number.isInteger(set.a) || !Number.isInteger(set.b) || set.a < 0 || set.b < 0)) throw new Error('Informe pontuações inteiras e positivas.');

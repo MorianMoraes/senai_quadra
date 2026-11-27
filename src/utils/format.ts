@@ -14,7 +14,7 @@ export const userName = (state: DemoState, id: string): string => {
   return name || 'Usuário';
 };
 export const teamName = (state: DemoState, id: string): string => state.teams.find(team => team.id === id)?.name ?? 'Equipe aberta';
-export const roleLabel = (role: UserRole): string => ({ student: 'Jogador', teacher: 'Representante', director: 'Administrador' })[role];
+export const roleLabel = (role: UserRole): string => ({ student: 'Jogador', teacher: 'Treinador / Empresa', director: 'Diretor', sesi: 'SESI' })[role];
 export function safePhoto(value: string): string {
   try { const url = new URL(value); return ['https:', 'http:'].includes(url.protocol) ? url.href : ''; } catch { return ''; }
 }

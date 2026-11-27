@@ -1,53 +1,124 @@
-# SENAI Sports — React, TypeScript, Vite e Supabase
+# Jogos do SESI + Saúde
 
-## Executar
+Plataforma web responsiva para consultar e organizar jogos, equipes, campeonatos, inscrições, resultados, classificação e galeria de campeões.
 
-Copie `.env.example` para `.env.local`, preencha as variáveis públicas do Supabase e rode:
+## Objetivo
+
+Reunir a agenda esportiva e as ferramentas de organização dos Jogos do SESI + Saúde em um só lugar, com consulta pública e áreas de administração controladas por perfil.
+
+## Tecnologias
+
+- React 19, TypeScript e Vite.
+- Supabase Auth, PostgreSQL, Row Level Security (RLS), RPCs e Realtime.
+- Vitest e Playwright.
+- GitHub Actions e GitHub Pages.
+- Resend por Supabase Edge Function para avisos de aprovação.
+
+## Estrutura
+
+- `src/pages`: páginas públicas, autenticação, jogos e administração.
+- `src/components` e `src/layouts`: componentes e navegação.
+- `src/contexts`: sessão, estado e conexão com Supabase.
+- `src/services`: regras de domínio e validação.
+- `src/styles`: estilos responsivos e temas.
+- `public/assets`: marca, calendário e fotos da galeria.
+- `supabase/migrations`: esquema, políticas e funções SQL.
+- `supabase/functions`: funções seguras executadas no Supabase.
+
+## Executar localmente
+
+Requer Node.js 22.12 ou superior.
 
 ```sh
 npm install
 npm run dev
+```
+
+Abra o endereço mostrado pelo Vite (normalmente `http://127.0.0.1:5173`). No Windows, `iniciar.cmd` também instala dependências ausentes e inicia o servidor.
+
+Verificações locais:
+
+```sh
 npm run typecheck
 npm test
 npm run build
-npm run verify:pages
+npm run test:e2e
 ```
 
-Sem as variáveis do Supabase, o app mantém o modo de demonstração local. Com elas, usa Supabase Auth e lê/escreve os dados remotos.
+## Variáveis de ambiente
 
-## Supabase
+Copie `.env.example` para `.env.local` e configure somente os valores públicos:
 
-O projeto já possui `public.profiles` com as colunas `id`, `nome`, `email`, `avatar_url` e `created_at`. A migration `20261104000100_senai_sports.sql` acrescenta os campos de perfil e autorização necessários sem recriar esse cadastro. Ela também cria `sports_state`, `activity_logs`, a view `public_profiles`, funções e policies RLS. Essa migration foi aplicada no projeto indicado pelo responsável.
-
-Aplique, nesta ordem, `supabase/migrations/20261104000200_player_actions.sql`, `supabase/migrations/20261104000300_public_profile_minimization.sql` e `supabase/migrations/20261104000400_non_null_role_guard.sql` no SQL Editor. A migration 002 libera as RPCs de entrada de jogadores em jogos/equipes e montagem de elenco, restritas ao perfil `student`, sem conceder atualização geral de `sports_state`. A migration 003 limita a view pública aos nomes, funções e fotos necessários para mostrar participantes, ocultando e-mail, turma, matrícula, idade e perfis suspensos. A migration 004 faz as funções SQL rejeitarem explicitamente usuários anônimos e perfis suspensos.
-
-Em Supabase Authentication, habilite e-mail/senha e configure os URLs de retorno para desenvolvimento e para o domínio de produção. Inclua o retorno do app com `?email-confirmed=1` na lista de URLs permitidas para que a tela de confirmação seja aberta após a validação. As contas são criadas no Supabase Auth. O trigger cria novos perfis como `student`; um administrador deve conferir e promover representantes no SQL Editor:
-
-```sql
-update public.profiles set role = 'teacher' where email = 'representante@exemplo.edu.br';
-update public.profiles set role = 'director' where email = 'administrador@exemplo.edu.br';
+```env
+VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=SUA_CHAVE_PUBLICAVEL
 ```
 
-Use somente a publishable key no navegador. Nunca coloque uma secret/service-role key em `.env.local` do Vite nem nos secrets de publicação.
+Sem essas variáveis, o app abre em modo de demonstração local. Esse modo não substitui autenticação nem persistência seguras para uso real.
 
-## Dados e permissões
+Nunca coloque `service_role`, senha do banco, chave privada ou chave do Resend em variáveis `VITE_*`, no código do navegador ou no README. O OAuth Google, se utilizado, deve ser configurado nos provedores do Supabase Auth.
 
-- Papéis internos: `student` (jogador), `teacher` (representante) e `director` (administrador).
-- Visitantes podem consultar calendário, jogos, equipes, campeonatos e resultados publicados. Ações de inscrição e administração exigem sessão e são validadas também pelas policies/RPCs do banco.
-- `public_profiles` expõe somente nome, função e foto de perfis ativos; e-mail, turma, matrícula e idade ficam privados.
-- `activity_logs` só pode ser lido por administradores. O documento de estado esportivo não inclui contas, senhas nem logs administrativos.
-- O ranking público é somente de equipes; modalidades têm ícones centralizados em `src/components/SportIcon.tsx` e categorias em `src/utils/sports.ts`.
+## Perfis e funcionalidades
 
-**Limite de esquema:** para preservar a aplicação existente, equipes, jogos, campeonatos, participantes, resultados e estatísticas ainda são persistidos juntos em `sports_state.payload` (JSONB), e não em tabelas relacionais individuais. As migrations protegem o documento com RLS e RPCs estreitas, mas relatórios relacionais, constraints por jogador e catálogo persistente de unidades exigem uma migração de modelo posterior. A interface permite informar unidades e reaproveita opções já existentes nos eventos.
+- **SESI:** administração institucional, consulta e ferramentas autorizadas para gestão do sistema.
+- **Diretor:** jogos, equipes, jogadores, campeonatos, resultados e análise das solicitações de representantes.
+- **Treinador/Empresa:** ferramentas de organização permitidas para suas equipes e eventos.
+- **Estudante/Jogador:** perfil, equipes, inscrições e consulta à agenda e estatísticas.
+- **Visitante:** consulta pública de agenda, equipes, torneios, resultados, documentos e galeria.
 
-## Migração dos dados locais
+Os controles da interface são complementados por políticas RLS e funções SQL. Nunca conceda privilégios alterando somente o estado do navegador.
 
-No navegador que contém os dados locais, entre como administrador e use **Gestão de usuários → Migrar dados locais preservados**. Primeiro crie no Supabase Auth cada conta local e confira o papel correspondente em `profiles`. A rotina valida as contas antes de enviar, converte referências para IDs Auth, usa IDs `legacy_` estáveis para evitar repetição e mantém os dados originais no `localStorage`; ela não migra senhas. Faça backup do banco e do navegador antes da operação.
+## Cadastro e aprovação de representantes
 
-## GitHub Pages e Vercel
+1. O responsável informa nome, equipe/empresa, e-mail e senha.
+2. O trigger do Supabase cria um perfil pendente e uma solicitação privada.
+3. A confirmação do endereço de e-mail não libera o painel.
+4. Um diretor ativo aprova ou recusa a solicitação na área **Usuários → Solicitações de Cadastro**.
+5. A aprovação muda o perfil para Treinador/Empresa; a recusa mantém o acesso bloqueado. Ambas ficam registradas com data e responsável.
+6. Após aprovação, uma Edge Function pode enviar o aviso por e-mail.
 
-No GitHub Actions, cadastre `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` como secrets/variables e publique via GitHub Actions. O caminho-base de Pages permanece `/senai_quadra/`. O app segue como site Vite estático e também pode ser servido pela Vercel; configure as mesmas duas variáveis de ambiente no projeto Vercel.
+O banco e a interface bloqueiam perfis pendentes e recusados. A função de aprovação só aceita chamadas de um diretor ativo; o usuário não pode alterar seu próprio perfil ou papel.
 
-## Demonstração local
+## Configurar Supabase
 
-Sem configuração remota, o modo anterior usa as chaves locais `senaiSportsReactDemoV1` e `senaiSportsDemoV1`. Não use contas fictícias da demonstração em produção. Arquivos `.env*` locais são ignorados pelo Git, exceto `.env.example`.
+1. Configure um projeto Supabase e o provedor de e-mail/senha em Authentication.
+2. Em Authentication → URL Configuration, inclua os URLs locais e de produção. O app usa `?email-confirmed=1` no retorno de confirmação.
+3. No SQL Editor ou via Supabase CLI, aplique as migrations pendentes em `supabase/migrations`, na ordem do nome do arquivo. Não reaplique migrations que já foram executadas.
+4. Confirme em especial a migration `20261127000400_teacher_account_approval.sql`: ela cria a tabela de solicitações, restringe os perfis pendentes e instala a RPC segura de decisão.
+5. Crie ou promova uma conta de direção de forma administrativa e segura. Não promova contas pelo frontend nem por dados fornecidos pelo próprio usuário.
+
+O estado esportivo legado ainda fica em `sports_state.payload` (JSONB); dados de perfil, solicitações, observações e informações privadas de jogadores têm políticas próprias. Revise e aplique cada migration no projeto Supabase correto antes de publicar a aplicação que depende dela.
+
+## E-mail de aprovação
+
+A função `notify-account-approved` usa Resend no servidor. Com Supabase CLI conectado ao projeto, publique e configure os segredos:
+
+```sh
+supabase functions deploy notify-account-approved
+supabase secrets set RESEND_API_KEY=VALOR_SEGURO APPROVAL_FROM_EMAIL="Jogos SESI <conta-verificada@seudominio.com>"
+```
+
+Use um domínio verificado no Resend. A função valida a sessão do Supabase, confirma no banco que quem chamou é diretor ativo e só envia a uma solicitação já aprovada. Os segredos ficam no Supabase; não os adicione ao `.env.local`, GitHub ou código cliente.
+
+## Contas de demonstração
+
+Não use contas reais ou senhas administrativas em documentação pública. Para testar, crie contas próprias em um projeto Supabase de desenvolvimento e promova somente uma conta de teste a diretor pelo painel seguro do Supabase.
+
+- Diretor: e-mail e senha de uma conta de desenvolvimento configurada pelo responsável do projeto.
+- Treinador/Empresa: use o fluxo de cadastro e aprove a solicitação com a conta de diretor de desenvolvimento.
+- Estudante: crie uma conta de teste separada conforme os provedores de autenticação habilitados.
+
+Não reutilize essas contas em produção. O modo local pode conter dados de demonstração definidos em `src/demo/seed.ts`; não os use para autenticar usuários reais.
+
+## Testes de layout e publicação
+
+Confira o site em largura de computador e celular pelo navegador local. Antes de publicar, rode os testes e a compilação acima. Para validar os caminhos de assets no GitHub Pages no PowerShell:
+
+```powershell
+$env:GITHUB_ACTIONS='true'
+npm run build
+if ($LASTEXITCODE -eq 0) { npm run verify:pages }
+Remove-Item Env:GITHUB_ACTIONS
+```
+
+No repositório GitHub, configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` como secrets/variables da Action de deploy. O workflow publica em GitHub Pages usando o caminho-base `/senai_quadra/`. A função de e-mail e seus segredos devem ser publicados/configurados no Supabase separadamente.

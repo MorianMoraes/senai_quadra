@@ -3,7 +3,9 @@ import { addDays } from '../utils/format';
 
 // Dados fictícios usados somente durante a migração, na Etapa 1.
 export const seed: DemoState = {
+  standings: [], cards: [], scorers: [], tournamentNotes: [], players: [], accountRequests: [],
   users: [
+    {id:'u10', role:'sesi', name:'SESI Admin', email:'sesi@senai.local', password:'Sesi@123', turma:'', idade:35, matricula:'', photo:'', suspended:false},
     {id:'u9',role:'student',name:'Beatriz Santos',email:'beatriz@senai.local',password:'Beatriz@123',turma:'3º A',idade:17,matricula:'ALU006',photo:'',suspended:false},
     {id:'u1', role:'director', name:'Diretor SENAI', email:'diretor@senai.local', password:'Senai@123', turma:'Direção', idade:38, matricula:'DIR001', photo:'', suspended:false},
     {id:'u2', role:'teacher', name:'Prof. Rafael', email:'professor@senai.local', password:'Professor@123', turma:'Educação Física', idade:31, matricula:'PROF001', photo:'', suspended:false},
@@ -20,9 +22,9 @@ export const seed: DemoState = {
     {id:'t3', name:'Titãs', sport:'volei', status:'ativa', creatorId:'u6', teacherIds:['u2'], memberIds:['u6','u8','u2'], reserveIds:['u4'], wins:3, losses:2, pointsFor:285, pointsAgainst:270}
   ],
   games: [
-    {id:'g1', sport:'volei', date:addDays(1), time:'14:00', duration:90, court:'Quadra SENAI', team1:'t1', team2:'t2', limit:18, description:'Jogo amistoso', notes:'Chegar 10 minutos antes.', status:'inscricoes', participantIds:['u4','u5','u6','u7'], sets:[], createdBy:'u2'},
-    {id:'g2', sport:'volei', date:addDays(3), time:'15:30', duration:90, court:'Quadra SENAI', team1:'t2', team2:'t3', limit:18, description:'Rodada interna', notes:'', status:'agendado', participantIds:['u5','u7','u8'], sets:[], createdBy:'u3'},
-    {id:'g3', sport:'volei', date:addDays(-4), time:'16:00', duration:90, court:'Quadra SENAI', team1:'t1', team2:'t3', limit:18, description:'Treino oficial', notes:'', status:'finalizado', participantIds:['u4','u5','u6','u8'], sets:[{a:25,b:19},{a:22,b:25},{a:15,b:12}], createdBy:'u2'}
+    {id:'g1', tournamentId:'', sport:'volei', date:addDays(1), time:'14:00', duration:90, court:'Quadra SENAI', team1:'t1', team2:'t2', limit:18, description:'Jogo amistoso', notes:'Chegar 10 minutos antes.', status:'inscricoes', participantIds:['u4','u5','u6','u7'], sets:[], createdBy:'u2',reportUrl:'',reportName:''},
+    {id:'g2', tournamentId:'', sport:'volei', date:addDays(3), time:'15:30', duration:90, court:'Quadra SENAI', team1:'t2', team2:'t3', limit:18, description:'Rodada interna', notes:'', status:'agendado', participantIds:['u5','u7','u8'], sets:[], createdBy:'u3',reportUrl:'',reportName:''},
+    {id:'g3', tournamentId:'', sport:'volei', date:addDays(-4), time:'16:00', duration:90, court:'Quadra SENAI', team1:'t1', team2:'t3', limit:18, description:'Treino oficial', notes:'', status:'finalizado', participantIds:['u4','u5','u6','u8'], sets:[{a:25,b:19},{a:22,b:25},{a:15,b:12}], createdBy:'u2',reportUrl:'',reportName:''}
   ],
   tournaments: [],
   stats: [

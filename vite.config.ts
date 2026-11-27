@@ -12,15 +12,15 @@ export default defineConfig(() => {
       VitePWA({
         registerType: 'autoUpdate',
         manifest: {
-          name: 'SENAI Sports',
-          short_name: 'SENAI Sports',
-          description: 'Organize jogos, equipes e campeonatos do SENAI Sports.',
+          name: 'Jogos do SESI + Saúde',
+          short_name: 'Jogos SESI',
+          description: 'Organize jogos, equipes e campeonatos dos Jogos do SESI + Saúde.',
           lang: 'pt-BR',
           start_url: appScope,
           scope: appScope,
           display: 'standalone',
-          theme_color: '#10171b',
-          background_color: '#10171b',
+          theme_color: '#6339bd',
+          background_color: '#f3f5f4',
           icons: [
             { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
             { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
